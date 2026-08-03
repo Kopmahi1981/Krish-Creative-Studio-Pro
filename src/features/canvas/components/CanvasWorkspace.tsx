@@ -37,7 +37,7 @@ export function CanvasWorkspace({ document, scale, showGrid, containerRef }: Can
   }
 
   return (
-    <div ref={containerRef} className="relative flex-1 overflow-auto bg-background">
+    <div ref={containerRef} className="relative flex flex-1 overflow-auto bg-background">
       {/* Ambient radial glow behind the artboard (theme-aware via CSS vars) */}
       <div
         className="pointer-events-none absolute inset-0 opacity-60"
@@ -47,9 +47,8 @@ export function CanvasWorkspace({ document, scale, showGrid, containerRef }: Can
         }}
       />
 
-      {/* margin:auto centers the artboard and enables symmetric overflow scroll */}
-      <div className="flex min-h-full min-w-full items-center justify-center p-6">
-        <div className="relative" style={{ margin: 'auto' }}>
+      {/* margin:auto centers flush (no vertical padding); allows symmetric scroll when zoomed past fit */}
+      <div className="relative w-fit" style={{ margin: 'auto' }}>
           <div
             className="relative shadow-glass ring-1 ring-white/10"
             style={boardStyle}
@@ -100,7 +99,6 @@ export function CanvasWorkspace({ document, scale, showGrid, containerRef }: Can
               </div>
             )}
           </div>
-        </div>
       </div>
     </div>
   )

@@ -1,0 +1,29 @@
+import { useState, type ReactNode } from 'react'
+import { Sidebar } from '@/components/layout/Sidebar'
+import { TopBar } from '@/components/layout/TopBar'
+
+interface AppLayoutProps {
+  children: ReactNode
+}
+
+/**
+ * Premium application shell for Phase 1.
+ * Composes the responsive Sidebar + TopBar with a scrollable content region.
+ * The left padding (lg:pl-64) reserves space for the static desktop sidebar.
+ */
+export function AppLayout({ children }: AppLayoutProps) {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      <div className="lg:pl-64">
+        <TopBar onMenuClick={() => setSidebarOpen(true)} />
+        <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+          {children}
+        </main>
+      </div>
+    </div>
+  )
+}

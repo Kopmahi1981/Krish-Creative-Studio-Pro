@@ -1,0 +1,2 @@
+# Shared libraries, third-party wrappers, helper integrations, reusable utilities.
+# Populated in later phases (e.g. API clients, export wrappers, analytics).

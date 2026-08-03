@@ -1,0 +1,107 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Light theme (default token values) */
+  :root {
+    color-scheme: light;
+    --color-bg: 248 250 252; /* slate-50 */
+    --color-surface: 255 255 255; /* white */
+    --color-surface-2: 241 245 249; /* slate-100 */
+    --color-text: 15 23 42; /* slate-900 */
+    --color-text-secondary: 51 65 85; /* slate-700 */
+    --color-text-muted: 100 116 139; /* slate-500 */
+    --color-border: 15 23 42; /* for alpha borders */
+    --color-glass-bg: 255 255 255; /* white */
+    --glass-alpha: 0.65;
+    --glass-border-alpha: 0.1;
+  }
+
+  /* Dark theme overrides */
+  html.dark {
+    color-scheme: dark;
+    --color-bg: 2 6 23; /* slate-950 */
+    --color-surface: 15 23 42; /* slate-900 */
+    --color-surface-2: 30 41 59; /* slate-800 */
+    --color-text: 248 250 252; /* slate-100 */
+    --color-text-secondary: 203 213 225; /* slate-300 */
+    --color-text-muted: 100 116 139; /* slate-500 */
+    --color-border: 255 255 255;
+    --color-glass-bg: 15 23 42;
+    --glass-alpha: 0.6;
+    --glass-border-alpha: 0.1;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+    min-height: 100vh;
+  }
+
+  /* Theme-aware ambient background glow for the whole app shell */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(60rem 60rem at 12% -10%, rgba(168, 85, 247, 0.18), transparent 60%),
+      radial-gradient(50rem 50rem at 110% 10%, rgba(244, 63, 94, 0.16), transparent 55%),
+      radial-gradient(40rem 40rem at 50% 120%, rgba(34, 211, 238, 0.12), transparent 60%);
+    pointer-events: none;
+  }
+}
+
+@layer components {
+  /* Glassmorphism surface — theme-aware via CSS variables */
+  .glass {
+    background-color: rgb(var(--color-glass-bg) / var(--glass-alpha));
+    border: 1px solid rgb(var(--color-border) / var(--glass-border-alpha));
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .glass-strong {
+    background-color: rgb(var(--color-surface) / 0.7);
+    border: 1px solid rgb(var(--color-border) / var(--glass-border-alpha));
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+
+  /* Neon text glows */
+  .neon-rose {
+    text-shadow: 0 0 8px rgba(244, 63, 94, 0.65), 0 0 22px rgba(244, 63, 94, 0.35);
+  }
+
+  .neon-purple {
+    text-shadow: 0 0 8px rgba(168, 85, 247, 0.65), 0 0 22px rgba(168, 85, 247, 0.35);
+  }
+
+  .neon-cyan {
+    text-shadow: 0 0 8px rgba(34, 211, 238, 0.65), 0 0 22px rgba(34, 211, 238, 0.35);
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgba(148, 163, 184, 0.35);
+    border-radius: 9999px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}

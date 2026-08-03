@@ -1,0 +1,2 @@
+# React Context providers (authentication, theme, user preferences, etc.).
+# Phase 1 uses Zustand for theme; Context providers land in later phases.

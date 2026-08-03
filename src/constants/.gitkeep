@@ -1,0 +1,2 @@
+# Global constants, enums, and application-wide configuration values.
+# Populated in later phases (e.g. platform enums, feature flags, limits).

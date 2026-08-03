@@ -1,0 +1,2 @@
+# Application configuration, environment settings, route config, and theme config.
+# Populated in later phases (e.g. route definitions, env parsing, theme tokens).

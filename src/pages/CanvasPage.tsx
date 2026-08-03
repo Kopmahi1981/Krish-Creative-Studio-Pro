@@ -1,21 +1,3 @@
-import { PenTool } from 'lucide-react'
-import { PageHeader, EmptyState } from '@/components/ui'
-
-/**
- * Phase 1 placeholder — the canvas editor ships in Phase 4.
- */
-export function CanvasPage() {
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Canvas Editor"
-        description="The visual editor with layers, text, and shapes will be built here."
-      />
-      <EmptyState
-        icon={PenTool}
-        title="Canvas ships in Phase 4"
-        description="A full visual editor with drag-and-drop layers, text, and shapes is planned for a later phase."
-      />
-    </div>
-  )
-}
+// Phase 4.1: the Canvas Editor shell now lives in the feature module.
+// This thin re-export keeps the route import in App.tsx unchanged.
+export { CanvasPage } from '@/features/canvas/CanvasPage'

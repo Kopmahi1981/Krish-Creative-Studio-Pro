@@ -1,40 +1,57 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { TopToolbar } from './components/TopToolbar'
 import { LeftToolbar } from './components/LeftToolbar'
 import { CanvasWorkspace } from './components/CanvasWorkspace'
 import { RightPropertiesPanel } from './components/RightPropertiesPanel'
 import { StatusBar } from './components/StatusBar'
-import { createDefaultDocument } from './models/defaultDocument'
-import { getCanvasSize } from './models/sizes'
 import { useViewport } from './hooks/useViewport'
+import { useCanvasObjects, selectActiveSize } from './objects/store'
+import { createDefaultDocument } from './models/defaultDocument'
 import type { CanvasSizeId, CanvasTool } from './models/editor'
 
 /**
- * Phase 4.1 — Canvas Foundation (workspace refinement).
- * Renders the full editor shell with a real viewport manager: auto-fit scaling,
- * fit-to-screen, and symmetric centering. Size, tool, zoom, and grid remain local
- * UI state (no persistence / no element editing yet — editing ships in Phase 4.2).
+ * Phase 4.3 — Canvas Foundation + Object Engine.
+ *
+ * The editor shell (top/left/right/status bars, workspace) is unchanged in layout.
+ * Two centralized stores drive it:
+ *  - `useViewport` — fit scale (auto) + user zoom (independent).
+ *  - `useCanvasObjects` — the Document Model (project → document → pages →
+ *    layers → objects), selection, tool mode, and editing state.
  */
 export function CanvasPage() {
   const [sizeId, setSizeId] = useState<CanvasSizeId>('square')
-  const [tool, setTool] = useState<CanvasTool>('select')
   const [showGrid, setShowGrid] = useState(false)
 
-  const document = useMemo(() => createDefaultDocument(sizeId), [sizeId])
-  const size = getCanvasSize(sizeId)
+  const tool = useCanvasObjects((s) => s.toolMode)
+  const setToolMode = useCanvasObjects((s) => s.setToolMode)
+  const setDocumentSize = useCanvasObjects((s) => s.setDocumentSize)
+  const activeSize = useCanvasObjects(selectActiveSize)
+  const selectedId = useCanvasObjects((s) => s.selectedObjectId)
+  const objectsById = useCanvasObjects((s) => s.objectsById)
 
-  // Professional viewport manager: measures the workspace, auto-fits, and centers.
+  // Keep the studio's document size + the object engine's document size in sync.
+  useEffect(() => {
+    setDocumentSize(sizeId)
+  }, [sizeId, setDocumentSize])
+
+  const size = activeSize
   const { scale, containerRef, fitToScreen, zoomIn, zoomOut, setUserZoom } = useViewport(size)
+  // The artboard background comes from the studio's default document factory.
+  const document = createDefaultDocument(sizeId)
 
-  const elementCount = document.pages[document.activePageIndex]?.elements.length ?? 0
-  // Artboard center coordinate (the origin cross). No selection yet → "—".
-  const centerX = Math.round(size.width / 2)
-  const centerY = Math.round(size.height / 2)
+  const selectedObject = selectedId ? objectsById[selectedId] : null
+  const objectCount = Object.keys(objectsById).length
+  const centerX = selectedObject
+    ? Math.round(selectedObject.rect.x + selectedObject.rect.width / 2)
+    : Math.round(size.width / 2)
+  const centerY = selectedObject
+    ? Math.round(selectedObject.rect.y + selectedObject.rect.height / 2)
+    : Math.round(size.height / 2)
 
   return (
     <div className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden">
       <TopToolbar
-        title={document.title}
+        title="Untitled Design"
         sizeId={sizeId}
         onSizeChange={setSizeId}
         scale={scale}
@@ -47,7 +64,7 @@ export function CanvasPage() {
       />
 
       <div className="flex min-h-0 flex-1">
-        <LeftToolbar active={tool} onChange={setTool} />
+        <LeftToolbar active={tool} onChange={(t: CanvasTool) => setToolMode(t)} />
 
         <div className="flex min-w-0 flex-1 flex-col">
           <CanvasWorkspace
@@ -63,7 +80,7 @@ export function CanvasPage() {
             onFit={fitToScreen}
             onSelectPreset={setUserZoom}
             sizeLabel={`${size.width} × ${size.height}`}
-            selectionCount={elementCount}
+            selectionCount={objectCount}
             grid={showGrid}
             snap={false}
             coordinates={{ x: centerX, y: centerY }}

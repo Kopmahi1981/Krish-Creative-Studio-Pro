@@ -1,6 +1,18 @@
-import { type CSSProperties, type RefObject } from 'react'
+import {
+  type CSSProperties,
+  type RefObject,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react'
 import type { CanvasDocument, CanvasSize } from '../models/editor'
 import { buildSafeAreaGuides, buildCenterGuides, SAFE_AREA_INSET_RATIO } from '../models/sizes'
+import { useCanvasObjects } from '../objects/store'
+import { CanvasObjectsLayer } from './objects/CanvasObjectsLayer'
+import { SelectionOverlay } from './objects/SelectionOverlay'
+import { TextEditorOverlay } from './objects/TextEditorOverlay'
+import { useCanvasInteractions } from '../hooks/useCanvasInteractions'
+import type { TextObject } from '../objects/model'
 
 interface CanvasWorkspaceProps {
   document: CanvasDocument
@@ -11,34 +23,79 @@ interface CanvasWorkspaceProps {
 }
 
 /**
- * Center canvas workspace — the only scrollable region of the editor.
+ * Canvas workspace layout hierarchy (per Milestone 4.2.1 + Phase 4.3):
  *
- * Centering uses a `margin:auto` content wrapper: this both centers the artboard
- * when it fits AND allows symmetric scrolling to reveal overflow when the user
- * zooms past the fit scale (no clipping, scrollbar appears only here, only when
- * needed). Safe-area margin guides and center cross guides are drawn on top.
+ *   CanvasViewport  (scroll container; 12px breathing room; only element that scrolls)
+ *     └─ Pan Layer   (fills viewport, flex-centered)
+ *        └─ Sizer    (scaled px dims → drives scroll area)
+ *           └─ Zoom Layer (transform: scale ONLY)
+ *              └─ Artboard (intrinsic)  ← CanvasObjectsLayer (objects, canvas space)
+ *                                        ← TextEditorOverlay (editing, canvas space)
+ *     └─ SelectionOverlay (screen space, on top)
+ *
+ * Object geometry is in canvas pixels; the Zoom Layer scales it. Selection chrome
+ * is screen-space so handles stay constant size at any zoom.
  */
 export function CanvasWorkspace({ document, scale, showGrid, containerRef }: CanvasWorkspaceProps) {
   const page = document.pages[document.activePageIndex] ?? document.pages[0]
   const size: CanvasSize = document.size
-  const boardW = size.width * scale
-  const boardH = size.height * scale
+  const artboardRef = useRef<HTMLDivElement>(null)
+
+  const selectedId = useCanvasObjects((s) => s.selectedObjectId)
+  const editingId = useCanvasObjects((s) => s.editingObjectId)
+  const objectsById = useCanvasObjects((s) => s.objectsById)
+  const toolMode = useCanvasObjects((s) => s.toolMode)
+
+  const selectedObject = selectedId ? objectsById[selectedId] : null
+  const editingObject = editingId ? (objectsById[editingId] as TextObject | undefined) : null
+
+  const { handleArtboardPointerDown, handleObjectPointerDown, handleOverlayMoveStart, handleOverlayResizeStart, handleObjectDoubleClick } =
+    useCanvasInteractions({ artboardRef, containerRef, scale })
+
+  // Screen-space position of the artboard (relative to the scroll content).
+  const [artboardScreen, setArtboardScreen] = useState({ x: 0, y: 0 })
+  const recompute = () => {
+    const a = artboardRef.current
+    const c = containerRef.current
+    if (!a || !c) return
+    const ar = a.getBoundingClientRect()
+    const cr = c.getBoundingClientRect()
+    setArtboardScreen({ x: ar.left - cr.left + c.scrollLeft, y: ar.top - cr.top + c.scrollTop })
+  }
+  useLayoutEffect(recompute, [scale, selectedId, editingId, containerRef])
+  // Recompute on scroll so the screen-space overlay tracks the artboard.
+  const onScroll = () => requestAnimationFrame(recompute)
+
+  const sizerW = size.width * scale
+  const sizerH = size.height * scale
+
+  const boardStyle: CSSProperties = {
+    width: size.width,
+    height: size.height,
+    background: page.background,
+    backgroundImage: showGrid
+      ? `linear-gradient(to right, rgba(148,163,184,0.28) 1px, transparent 1px), linear-gradient(to bottom, rgba(148,163,184,0.28) 1px, transparent 1px)`
+      : undefined,
+    backgroundSize: showGrid ? `${40 * scale}px ${40 * scale}px` : undefined,
+    cursor: toolMode === 'text' ? 'text' : toolMode === 'hand' ? 'grab' : 'default',
+  }
+
   const safeGuides = buildSafeAreaGuides(size.width, size.height)
   const centerGuides = buildCenterGuides(size.width, size.height)
 
-  const boardStyle: CSSProperties = {
-    width: boardW,
-    height: boardH,
-    background: page.background,
-    backgroundImage: showGrid
-      ? `linear-gradient(to right, rgba(148,163,184,0.16) 1px, transparent 1px), linear-gradient(to bottom, rgba(148,163,184,0.16) 1px, transparent 1px)`
-      : undefined,
-    backgroundSize: showGrid ? `${40 * scale}px ${40 * scale}px` : undefined,
-  }
-
   return (
-    <div ref={containerRef} className="relative flex flex-1 overflow-auto bg-background">
-      {/* Ambient radial glow behind the artboard (theme-aware via CSS vars) */}
+    <div
+      ref={containerRef}
+      onScroll={onScroll}
+      onPointerDown={(e) => {
+        // Pan from empty workspace area (clicks that don't hit the artboard/objects).
+        if (useCanvasObjects.getState().toolMode === 'hand' && e.target === e.currentTarget) {
+          handleArtboardPointerDown(e)
+        }
+      }}
+      className="relative flex flex-1 overflow-auto bg-background p-3"
+    >
+      {/* Ambient radial glow */}
       <div
         className="pointer-events-none absolute inset-0 opacity-60"
         style={{
@@ -47,59 +104,120 @@ export function CanvasWorkspace({ document, scale, showGrid, containerRef }: Can
         }}
       />
 
-      {/* margin:auto centers flush (no vertical padding); allows symmetric scroll when zoomed past fit */}
-      <div className="relative w-fit" style={{ margin: 'auto' }}>
+      {/* Pan Layer */}
+      <div className="flex min-h-full min-w-full items-center justify-center">
+        {/* Sizer (scaled px) */}
+        <div style={{ width: sizerW, height: sizerH }}>
+          {/* Zoom Layer (scale only) */}
           <div
-            className="relative shadow-glass ring-1 ring-white/10"
-            style={boardStyle}
-            role="img"
-            aria-label={`${size.width} by ${size.height} artboard at ${Math.round(scale * 100)}%`}
+            style={{
+              width: size.width,
+              height: size.height,
+              transform: `scale(${scale})`,
+              transformOrigin: 'top left',
+            }}
           >
-            {/* Center cross guides (rule) */}
-            {centerGuides.map((g) => (
-              <div
-                key={g.id}
-                className="pointer-events-none absolute bg-white/25"
-                style={
-                  g.orientation === 'vertical'
-                    ? { left: g.position * scale, top: 0, width: 1, height: boardH }
-                    : { top: g.position * scale, left: 0, height: 1, width: boardW }
-                }
-              />
-            ))}
-
-            {/* Safe-area margin guides (dashed rectangle + edge ticks) */}
+            {/* Artboard (intrinsic) */}
             <div
-              className="pointer-events-none absolute border border-dashed border-white/40"
-              style={{
-                left: size.width * SAFE_AREA_INSET_RATIO * scale,
-                top: size.height * SAFE_AREA_INSET_RATIO * scale,
-                width: size.width * (1 - SAFE_AREA_INSET_RATIO * 2) * scale,
-                height: size.height * (1 - SAFE_AREA_INSET_RATIO * 2) * scale,
-              }}
-            />
-            {safeGuides.map((g) => (
+              ref={artboardRef}
+              className="relative shadow-glass ring-1 ring-white/10"
+              style={boardStyle}
+              role="img"
+              aria-label={`${size.width} by ${size.height} artboard at ${Math.round(scale * 100)}%`}
+              onPointerDown={handleArtboardPointerDown}
+            >
+              {/* Guides */}
+              {centerGuides.map((g) => (
+                <div
+                  key={g.id}
+                  className="pointer-events-none absolute bg-white/25"
+                  style={
+                    g.orientation === 'vertical'
+                      ? { left: g.position, top: 0, width: 1, height: size.height }
+                      : { top: g.position, left: 0, height: 1, width: size.width }
+                  }
+                />
+              ))}
               <div
-                key={g.id}
-                className="pointer-events-none absolute bg-white/30"
-                style={
-                  g.orientation === 'vertical'
-                    ? { left: g.position * scale, top: 0, width: 1, height: boardH }
-                    : { top: g.position * scale, left: 0, height: 1, width: boardW }
-                }
+                className="pointer-events-none absolute border border-dashed border-white/40"
+                style={{
+                  left: size.width * SAFE_AREA_INSET_RATIO,
+                  top: size.height * SAFE_AREA_INSET_RATIO,
+                  width: size.width * (1 - SAFE_AREA_INSET_RATIO * 2),
+                  height: size.height * (1 - SAFE_AREA_INSET_RATIO * 2),
+                }}
               />
-            ))}
+              {safeGuides.map((g) => (
+                <div
+                  key={g.id}
+                  className="pointer-events-none absolute bg-white/30"
+                  style={
+                    g.orientation === 'vertical'
+                      ? { left: g.position, top: 0, width: 1, height: size.height }
+                      : { top: g.position, left: 0, height: 1, width: size.width }
+                  }
+                />
+              ))}
 
-            {/* Empty-state hint (Phase 4.1 — no elements yet) */}
-            {page.elements.length === 0 && (
-              <div className="absolute inset-0 grid place-items-center px-6 text-center">
-                <p className="max-w-xs text-sm font-medium text-white/70">
-                  Your canvas is empty. Elements, text, and images arrive in the next phase.
-                </p>
-              </div>
-            )}
+              {/* Empty-state placeholder — only when there are no objects (overlay, never clips). */}
+              {Object.keys(objectsById).length === 0 && !editingObject && (() => {
+                const fontPx = Math.min(120, Math.max(18, 28 / scale))
+                const lowZoom = scale < 0.5
+                return (
+                  <div
+                    className="pointer-events-none absolute inset-0 grid place-items-center overflow-visible p-6 text-center"
+                    style={{ fontSize: `${fontPx}px` }}
+                  >
+                    {lowZoom ? (
+                      <div className="font-semibold leading-snug text-white/80">
+                        <p>Start creating</p>
+                        <p className="mt-2 text-[0.7em] font-medium text-white/70">
+                          Double-click to add elements
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="max-w-[28rem] font-medium leading-relaxed text-white/70">
+                        Your canvas is empty. Elements, text, and images arrive in the next phase.
+                      </p>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {/* Objects (canvas space) */}
+              <CanvasObjectsLayer
+                interactive
+                onObjectPointerDown={handleObjectPointerDown}
+                onObjectDoubleClick={(id, e) => handleObjectDoubleClick(id, e)}
+              />
+
+              {/* Inline text editor (canvas space, aligns + scales with artboard) */}
+              {editingObject && editingObject.kind === 'text' && (
+                <TextEditorOverlay
+                  object={editingObject}
+                  onCommit={(text) => {
+                    useCanvasObjects.getState().updateObject(editingObject.id, { textContent: text })
+                    useCanvasObjects.getState().setEditing(null)
+                  }}
+                  onCancel={() => useCanvasObjects.getState().setEditing(null)}
+                />
+              )}
+            </div>
           </div>
+        </div>
       </div>
+
+      {/* Selection chrome (screen space) */}
+      {selectedObject && !editingObject && (
+        <SelectionOverlay
+          object={selectedObject}
+          artboardScreen={artboardScreen}
+          scale={scale}
+          onMoveStart={handleOverlayMoveStart}
+          onResizeStart={handleOverlayResizeStart}
+          onEditStart={() => useCanvasObjects.getState().setEditing(selectedObject.id)}
+        />
+      )}
     </div>
   )
 }

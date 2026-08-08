@@ -13,6 +13,7 @@ import { BrandLogo } from '@/components/BrandLogo'
 import { Tooltip } from '@/components/ui'
 import { cn } from '@/utils/cn'
 import type { NavIconName } from '@/types'
+import { t, useLanguage } from '@/i18n'
 
 const ICONS: Record<NavIconName, LucideIcon> = {
   LayoutDashboard,
@@ -38,6 +39,8 @@ interface SidebarProps {
  */
 export function Sidebar({ open, onClose }: SidebarProps) {
   const location = useLocation()
+  // Subscribe to language so nav labels/tooltips re-render on switch.
+  useLanguage()
 
   return (
     <>
@@ -74,7 +77,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             <div key={section.id}>
               {section.label && (
                 <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-foreground-muted">
-                  {section.label}
+                  {t(`nav.section.${section.id}`)}
                 </p>
               )}
               <div className="space-y-1.5">
@@ -83,7 +86,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                   const isActive =
                     item.path === '/' ? location.pathname === '/' : location.pathname.startsWith(item.path)
                   return (
-                    <Tooltip key={item.id} content={item.description ?? item.label} side="right" className="lg:hidden">
+                    <Tooltip key={item.id} content={t(`nav.${item.id}.desc`)} side="right" className="lg:hidden">
                       <NavLink
                         to={item.path}
                         end={item.path === '/'}
@@ -105,7 +108,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                             isActive ? 'text-brand-cyan' : 'text-foreground-muted group-hover:text-brand-rose',
                           )}
                         />
-                        {item.label}
+                        {t(`nav.${item.id}`)}
                       </NavLink>
                     </Tooltip>
                   )
@@ -116,8 +119,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </nav>
 
         <div className="border-t border-white/10 px-5 py-4">
-          <p className="text-xs text-foreground-secondary">Krish Creative Studio Pro</p>
-          <p className="text-[11px] text-foreground-muted">Phase 2 · Application Layout</p>
+          <p className="text-xs text-foreground-secondary">{t('nav.brand')}</p>
+          <p className="text-[11px] text-foreground-muted">{t('nav.brand.phase')}</p>
         </div>
       </aside>
     </>

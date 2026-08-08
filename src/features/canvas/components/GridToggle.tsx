@@ -1,5 +1,6 @@
 import { Grid3x3 } from 'lucide-react'
 import { cn } from '@/utils/cn'
+import { t, useLanguage } from '@/i18n'
 
 interface GridToggleProps {
   active: boolean
@@ -8,12 +9,13 @@ interface GridToggleProps {
 
 /** Toggle the workspace alignment grid. Visual-only in Phase 4.1. */
 export function GridToggle({ active, onChange }: GridToggleProps) {
+  useLanguage()
   return (
     <button
       type="button"
       role="switch"
       aria-checked={active}
-      aria-label="Toggle grid"
+      aria-label={t('canvas.grid')}
       onClick={() => onChange(!active)}
       className={cn(
         'inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition',
@@ -24,7 +26,7 @@ export function GridToggle({ active, onChange }: GridToggleProps) {
       )}
     >
       <Grid3x3 className="h-4 w-4" />
-      Grid
+      {t('canvas.grid')}
     </button>
   )
 }

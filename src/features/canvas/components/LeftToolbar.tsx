@@ -1,35 +1,38 @@
 import { MousePointer2, Type, Image as ImageIcon, Square, Hand } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import type { CanvasTool } from '../models/editor'
+import { t, useLanguage } from '@/i18n'
 
 interface LeftToolbarProps {
   active: CanvasTool
   onChange: (tool: CanvasTool) => void
 }
 
-const TOOLS: { id: CanvasTool; label: string; Icon: typeof MousePointer2; disabled?: boolean }[] = [
-  { id: 'select', label: 'Select', Icon: MousePointer2 },
-  { id: 'text', label: 'Add text', Icon: Type },
-  { id: 'image', label: 'Add image (coming soon)', Icon: ImageIcon, disabled: true },
-  { id: 'shape', label: 'Add shape (coming soon)', Icon: Square, disabled: true },
-  { id: 'hand', label: 'Pan', Icon: Hand },
+const TOOLS: { id: CanvasTool; labelKey: string; Icon: typeof MousePointer2; disabled?: boolean }[] = [
+  { id: 'select', labelKey: 'tool.select', Icon: MousePointer2 },
+  { id: 'text', labelKey: 'tool.text', Icon: Type },
+  { id: 'image', labelKey: 'tool.image', Icon: ImageIcon, disabled: true },
+  { id: 'shape', labelKey: 'tool.shape', Icon: Square, disabled: true },
+  { id: 'hand', labelKey: 'tool.hand', Icon: Hand },
 ]
 
 /** Vertical tool rail. Tool selection is visual-only in Phase 4.1. */
 export function LeftToolbar({ active, onChange }: LeftToolbarProps) {
+  // Subscribe to language so EN → TE → HI re-renders labels immediately.
+  useLanguage()
   return (
     <div className="flex flex-col items-center gap-1.5 border-r border-white/10 bg-surface/40 p-2">
-      {TOOLS.map(({ id, label, Icon, disabled }) => {
+      {TOOLS.map(({ id, labelKey, Icon, disabled }) => {
         const isActive = active === id
         return (
           <button
             key={id}
             type="button"
             disabled={disabled}
-            aria-label={label}
+            aria-label={t(labelKey)}
             aria-pressed={isActive}
             aria-disabled={disabled || undefined}
-            title={label}
+            title={t(labelKey)}
             onClick={() => !disabled && onChange(id)}
             className={cn(
               'grid h-10 w-10 place-items-center rounded-xl border transition',

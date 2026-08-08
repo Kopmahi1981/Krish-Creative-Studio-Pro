@@ -6,6 +6,7 @@ import { TemplateBadges } from './TemplateBadges'
 import { TemplateThumbnail } from './TemplateThumbnail'
 import { TemplateTag } from './TemplateTag'
 import { relativeDate } from '../utils/templateMeta'
+import { t, useLanguage } from '@/i18n'
 
 /** Standardized thumbnail ratio (4:5) so every card aligns and heights match. */
 const THUMB_RATIO = 0.8
@@ -33,9 +34,11 @@ export function TemplateCard({
   onPreview,
   onSelect,
 }: TemplateCardProps) {
+  // Subscribe so action/favorite labels localize on language switch.
+  useLanguage()
   const favoriteBtn = (
     <IconButton
-      label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+      label={isFavorite ? t('tpl.removeFav') : t('tpl.addFav')}
       size="sm"
       tone={isFavorite ? 'rose' : 'default'}
       onClick={(e) => {
@@ -65,7 +68,7 @@ export function TemplateCard({
     >
       <LayoutGrid className="h-4 w-4 sm:hidden" />
       <List className="h-4 w-4 sm:hidden" />
-      Use Template
+      {t('tpl.use')}
     </button>
   )
 
@@ -115,7 +118,7 @@ export function TemplateCard({
               onClick={() => onSelect(template)}
               className="rounded-lg border border-brand-purple/40 bg-brand-purple/10 px-3 py-1.5 text-xs font-semibold text-brand-purple"
             >
-              Use
+              {t('tpl.useShort')}
             </button>
           </div>
         </div>

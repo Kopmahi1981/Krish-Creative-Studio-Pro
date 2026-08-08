@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { User, Settings, CreditCard, LogOut, LifeBuoy } from 'lucide-react'
 import { Dropdown, Modal, Button, useToast } from '@/components/ui'
+import { t, useLanguage } from '@/i18n'
 
 /**
  * User profile dropdown. Navigates to placeholder pages on selection.
@@ -11,6 +12,8 @@ export function UserProfileMenu() {
   const navigate = useNavigate()
   const { toast } = useToast()
   const [signOutOpen, setSignOutOpen] = useState(false)
+  // Subscribe to language so the menu + modal re-render on switch.
+  useLanguage()
 
   const handleSelect = (value: string) => {
     switch (value) {
@@ -41,11 +44,11 @@ export function UserProfileMenu() {
           </span>
         }
         options={[
-          { label: 'Profile', value: 'profile', icon: <User className="h-4 w-4" /> },
-          { label: 'Billing', value: 'billing', icon: <CreditCard className="h-4 w-4" /> },
-          { label: 'Settings', value: 'settings', icon: <Settings className="h-4 w-4" /> },
-          { label: 'Support', value: 'support', icon: <LifeBuoy className="h-4 w-4" /> },
-          { label: 'Sign out', value: 'signout', icon: <LogOut className="h-4 w-4" /> },
+          { label: t('user.profile'), value: 'profile', icon: <User className="h-4 w-4" /> },
+          { label: t('user.billing'), value: 'billing', icon: <CreditCard className="h-4 w-4" /> },
+          { label: t('user.settings'), value: 'settings', icon: <Settings className="h-4 w-4" /> },
+          { label: t('user.support'), value: 'support', icon: <LifeBuoy className="h-4 w-4" /> },
+          { label: t('user.signout'), value: 'signout', icon: <LogOut className="h-4 w-4" /> },
         ]}
         align="end"
         onSelect={handleSelect}
@@ -54,26 +57,26 @@ export function UserProfileMenu() {
       <Modal
         open={signOutOpen}
         onClose={() => setSignOutOpen(false)}
-        title="Sign out?"
+        title={t('user.signout.title')}
         footer={
           <>
             <Button variant="ghost" onClick={() => setSignOutOpen(false)}>
-              Cancel
+              {t('user.cancel')}
             </Button>
             <Button
               variant="danger"
               onClick={() => {
                 setSignOutOpen(false)
-                toast('Sign out is disabled in this demo.', 'info')
+                toast(t('user.signout.disabled'), 'info')
               }}
             >
-              Sign out
+              {t('user.signout')}
             </Button>
           </>
         }
       >
         <p className="text-sm text-foreground-secondary">
-          You would be returned to the login screen. This is a demo — no authentication is performed.
+          {t('user.signout.body')}
         </p>
       </Modal>
     </>

@@ -1,6 +1,7 @@
 import { ZoomIn, ZoomOut, Maximize, ChevronDown } from 'lucide-react'
 import { IconButton } from '@/components/ui'
 import { PRESET_ZOOMS } from '../models/viewport'
+import { t, useLanguage } from '@/i18n'
 
 interface ZoomControlsProps {
   /** Effective rendered scale (fitScale × userZoom). Drives the displayed %. */
@@ -30,16 +31,18 @@ export function ZoomControls({ scale, onZoomIn, onZoomOut, onFit, onSelectPreset
     Math.abs(z - scale) < Math.abs(best - scale) ? z : best,
   )
   const nearestLabel = `${Math.round(nearest * 100)}%`
+  // Subscribe to language so zoom aria-labels localize immediately.
+  useLanguage()
 
   return (
     <div className="flex items-center gap-1">
-      <IconButton label="Zoom out" size="sm" onClick={onZoomOut}>
+      <IconButton label={t('zoom.out')} size="sm" onClick={onZoomOut}>
         <ZoomOut className="h-4 w-4" />
       </IconButton>
 
       <div className="relative">
         <select
-          aria-label="Zoom level"
+          aria-label={t('zoom.level')}
           value={String(nearest)}
           onChange={(e) => onSelectPreset(Number(e.target.value))}
           className="appearance-none rounded-lg border border-white/10 bg-white/5 py-1.5 pl-3 pr-7 text-xs font-medium tabular-nums text-foreground-secondary outline-none transition hover:bg-white/10 focus:border-brand-purple/60"
@@ -59,10 +62,10 @@ export function ZoomControls({ scale, onZoomIn, onZoomOut, onFit, onSelectPreset
         <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-foreground-muted" />
       </div>
 
-      <IconButton label="Zoom in" size="sm" onClick={onZoomIn}>
+      <IconButton label={t('zoom.in')} size="sm" onClick={onZoomIn}>
         <ZoomIn className="h-4 w-4" />
       </IconButton>
-      <IconButton label="Fit to screen" size="sm" onClick={onFit}>
+      <IconButton label={t('zoom.fit')} size="sm" onClick={onFit}>
         <Maximize className="h-4 w-4" />
       </IconButton>
     </div>

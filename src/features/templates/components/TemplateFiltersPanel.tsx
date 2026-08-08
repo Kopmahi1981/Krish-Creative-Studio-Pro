@@ -11,6 +11,7 @@ import {
 import { cn } from '@/utils/cn'
 import type { TemplateFilters } from '../types/template'
 import { FunnelChip } from './FunnelChip'
+import { t, useLanguage } from '@/i18n'
 
 interface TemplateFiltersProps {
   filters: TemplateFilters
@@ -36,6 +37,8 @@ export function TemplateFiltersPanel({
   onReset,
   resultCount,
 }: TemplateFiltersProps) {
+  // Subscribe so filter labels localize on language switch.
+  useLanguage()
   return (
     <div className="space-y-4 rounded-2xl border border-white/10 bg-surface/60 p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
@@ -44,33 +47,33 @@ export function TemplateFiltersPanel({
           <Input
             value={filters.search}
             onChange={(e) => onPatch({ search: e.target.value })}
-            placeholder="Search templates, tags, keywords…"
+            placeholder={t('tpl.search.ph')}
             className="pl-10"
-            aria-label="Search templates"
+            aria-label={t('tpl.search.aria')}
           />
         </div>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:flex lg:items-center">
           <Select
-            aria-label="Platform"
+            aria-label={t('tpl.platform')}
             options={[ALL_OPTION, ...toSelectOptions(PLATFORMS)]}
             value={filters.platform}
             onChange={(e) => onPatch({ platform: e.target.value as TemplateFilters['platform'] })}
           />
           <Select
-            aria-label="Category"
+            aria-label={t('tpl.category')}
             options={[ALL_OPTION, ...toSelectOptions(CATEGORIES)]}
             value={filters.category}
             onChange={(e) => onPatch({ category: e.target.value as TemplateFilters['category'] })}
           />
           <Select
-            aria-label="Aspect ratio"
+            aria-label={t('tpl.aspect')}
             options={[ALL_OPTION, ...toSelectOptions(ASPECT_RATIOS)]}
             value={filters.aspectRatio}
             onChange={(e) => onPatch({ aspectRatio: e.target.value as TemplateFilters['aspectRatio'] })}
           />
           <Select
-            aria-label="Sort"
+            aria-label={t('tpl.sort')}
             options={toSelectOptions(SORT_OPTIONS)}
             value={filters.sort}
             onChange={(e) => onPatch({ sort: e.target.value as TemplateFilters['sort'] })}
@@ -100,12 +103,12 @@ export function TemplateFiltersPanel({
           leftIcon={<Star className={cn('h-4 w-4', filters.onlyFavorites && 'fill-brand-rose text-brand-rose')} />}
           onClick={() => onPatch({ onlyFavorites: !filters.onlyFavorites })}
         >
-          Favorites
+          {t('tpl.favorites')}
         </Button>
 
         <div className="ml-auto flex items-center gap-1 rounded-xl border border-white/10 p-1">
           <IconButton
-            label="Grid view"
+            label={t('tpl.gridView')}
             size="sm"
             tone={filters.view === 'grid' ? 'purple' : 'default'}
             onClick={() => onPatch({ view: 'grid' })}
@@ -113,7 +116,7 @@ export function TemplateFiltersPanel({
             <LayoutGrid className="h-4 w-4" />
           </IconButton>
           <IconButton
-            label="List view"
+            label={t('tpl.listView')}
             size="sm"
             tone={filters.view === 'list' ? 'purple' : 'default'}
             onClick={() => onPatch({ view: 'list' })}
@@ -136,7 +139,7 @@ export function TemplateFiltersPanel({
 
       <div className="flex items-center justify-between text-xs text-foreground-muted">
         <span>
-          {resultCount} template{resultCount === 1 ? '' : 's'} found
+          {t(resultCount === 1 ? 'tpl.found' : 'tpl.found.plural', { count: resultCount })}
         </span>
         {(filters.search || filters.tags.length > 0 || filters.onlyFavorites || filters.funnel !== 'all') && (
           <button
@@ -144,7 +147,7 @@ export function TemplateFiltersPanel({
             onClick={onReset}
             className="inline-flex items-center gap-1 text-foreground-secondary transition hover:text-brand-rose"
           >
-            <X className="h-3.5 w-3.5" /> Clear filters
+            <X className="h-3.5 w-3.5" /> {t('tpl.clear')}
           </button>
         )}
       </div>

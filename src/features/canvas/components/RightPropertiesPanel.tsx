@@ -3,6 +3,7 @@ import { Input, Select, Slider, ColorPicker } from '@/components/ui'
 import { useCanvasObjects } from '../objects/store'
 import { FONT_CONFIG } from '../fonts/config'
 import type { TextObject } from '../objects/model'
+import { t, useLanguage } from '@/i18n'
 
 const fontOptions = FONT_CONFIG.map((f) => ({ label: f.label, value: f.id }))
 
@@ -48,11 +49,13 @@ export function RightPropertiesPanel() {
   const selectedId = useCanvasObjects((s) => s.selectedObjectId)
   const object = useCanvasObjects((s) => (selectedId ? s.objectsById[selectedId] : null))
   const update = useCanvasObjects((s) => s.updateObject)
+  // Subscribe to language so all property labels re-render on switch.
+  useLanguage()
 
   const header = (
     <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
       <SlidersHorizontal className="h-4 w-4 text-brand-purple" />
-      <h2 className="text-sm font-semibold text-foreground">Properties</h2>
+      <h2 className="text-sm font-semibold text-foreground">{t('props.title')}</h2>
     </div>
   )
 
@@ -65,23 +68,23 @@ export function RightPropertiesPanel() {
             <MousePointerClick className="h-6 w-6" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-foreground">Nothing selected</p>
+            <p className="text-sm font-semibold text-foreground">{t('props.none')}</p>
             <p className="mt-1 max-w-[15rem] text-xs leading-relaxed text-foreground-muted">
-              Select an object on the canvas to reveal its properties here.
+              {t('props.none.hint')}
             </p>
           </div>
           <ul className="max-w-[15rem] space-y-1.5 text-left text-xs text-foreground-muted">
             <li className="flex items-start gap-2">
               <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-brand-purple" />
-              Position &amp; size (X, Y, W, H)
+              {t('props.bullet.position')}
             </li>
             <li className="flex items-start gap-2">
               <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-brand-rose" />
-              Typography, color &amp; opacity
+              {t('props.bullet.typography')}
             </li>
             <li className="flex items-start gap-2">
               <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-brand-cyan" />
-              Alignment, layering &amp; effects
+              {t('props.bullet.alignment')}
             </li>
           </ul>
         </div>
@@ -99,21 +102,21 @@ export function RightPropertiesPanel() {
       {header}
       <div className="flex flex-col gap-4 p-4">
         <div className="grid grid-cols-2 gap-3">
-          <Field label="X">
+          <Field label={t('props.x')}>
             <NumberInput value={obj.rect.x} onChange={(v) => setRect({ x: v })} />
           </Field>
-          <Field label="Y">
+          <Field label={t('props.y')}>
             <NumberInput value={obj.rect.y} onChange={(v) => setRect({ y: v })} />
           </Field>
-          <Field label="Width">
+          <Field label={t('props.width')}>
             <NumberInput value={obj.rect.width} onChange={(v) => setRect({ width: Math.max(24, v) })} />
           </Field>
-          <Field label="Height">
+          <Field label={t('props.height')}>
             <NumberInput value={obj.rect.height} onChange={(v) => setRect({ height: Math.max(24, v) })} />
           </Field>
         </div>
 
-        <Field label="Rotation">
+        <Field label={t('props.rotation')}>
           <Slider
             min={-180}
             max={180}
@@ -122,11 +125,11 @@ export function RightPropertiesPanel() {
           />
         </Field>
 
-        <Field label="Font Size">
+        <Field label={t('props.fontSize')}>
           <NumberInput value={obj.style.fontSize} onChange={(v) => setStyle({ fontSize: Math.max(1, v) })} />
         </Field>
 
-        <Field label="Font Family">
+        <Field label={t('props.fontFamily')}>
           <Select
             value={obj.style.fontFamilyId}
             options={fontOptions}
@@ -134,23 +137,23 @@ export function RightPropertiesPanel() {
           />
         </Field>
 
-        <Field label="Align">
+        <Field label={t('props.align')}>
           <Select
             value={obj.style.align}
             options={[
-              { label: 'Left', value: 'left' },
-              { label: 'Center', value: 'center' },
-              { label: 'Right', value: 'right' },
+              { label: t('props.align.left'), value: 'left' },
+              { label: t('props.align.center'), value: 'center' },
+              { label: t('props.align.right'), value: 'right' },
             ]}
             onChange={(e) => setStyle({ align: e.target.value as TextObject['style']['align'] })}
           />
         </Field>
 
-        <Field label="Color">
+        <Field label={t('props.color')}>
           <ColorPicker value={obj.style.color} onChange={(v) => setStyle({ color: v })} />
         </Field>
 
-        <Field label={`Opacity (${Math.round(obj.opacity * 100)}%)`}>
+        <Field label={t('props.opacity', { pct: Math.round(obj.opacity * 100) })}>
           <Slider
             min={0}
             max={100}

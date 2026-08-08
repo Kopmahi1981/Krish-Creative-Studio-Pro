@@ -4,9 +4,9 @@ import { CanvasSizeSelector } from './CanvasSizeSelector'
 import { ZoomControls } from './ZoomControls'
 import { GridToggle } from './GridToggle'
 import type { CanvasSizeId } from '../models/editor'
+import { t, useLanguage } from '@/i18n'
 
 interface TopToolbarProps {
-  title: string
   sizeId: CanvasSizeId
   onSizeChange: (id: CanvasSizeId) => void
   scale: number
@@ -23,7 +23,6 @@ interface TopToolbarProps {
  * grid toggle, and (disabled / placeholder in Phase 4.1) undo-redo and export.
  */
 export function TopToolbar({
-  title,
   sizeId,
   onSizeChange,
   scale,
@@ -34,10 +33,12 @@ export function TopToolbar({
   showGrid,
   onToggleGrid,
 }: TopToolbarProps) {
+  // Subscribe to language so the document title localizes on switch.
+  useLanguage()
   return (
     <header className="glass-strong z-10 flex items-center gap-3 border-b border-white/10 px-3 py-2.5 sm:px-4">
       <div className="hidden min-w-0 flex-1 sm:block">
-        <p className="truncate text-sm font-semibold text-foreground">{title}</p>
+        <p className="truncate text-sm font-semibold text-foreground">{t('canvas.untitled')}</p>
       </div>
 
       <div className="flex items-center gap-2">

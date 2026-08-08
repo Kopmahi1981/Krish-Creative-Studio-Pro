@@ -1,5 +1,6 @@
 import { cn } from '@/utils/cn'
 import type { FunnelStage } from '../types/template'
+import { t, useLanguage } from '@/i18n'
 
 interface FunnelChipProps {
   stage: FunnelStage
@@ -9,11 +10,11 @@ interface FunnelChipProps {
 
 const CONFIG: Record<
   FunnelStage,
-  { label: string; title: string; dot: string; text: string; border: string; glow: string; ring: string }
+  { label: string; titleKey: string; dot: string; text: string; border: string; glow: string; ring: string }
 > = {
   tofu: {
     label: 'TOFU',
-    title: 'Top of Funnel',
+    titleKey: 'tpl.funnel.tofu',
     dot: 'bg-cyan-500',
     text: 'text-cyan-500',
     border: 'border-cyan-500/40',
@@ -22,7 +23,7 @@ const CONFIG: Record<
   },
   mofu: {
     label: 'MOFU',
-    title: 'Middle of Funnel',
+    titleKey: 'tpl.funnel.mofu',
     dot: 'bg-brand-purple',
     text: 'text-brand-purple',
     border: 'border-brand-purple/40',
@@ -31,7 +32,7 @@ const CONFIG: Record<
   },
   bofu: {
     label: 'BOFU',
-    title: 'Bottom of Funnel',
+    titleKey: 'tpl.funnel.bofu',
     dot: 'bg-brand-rose',
     text: 'text-brand-rose',
     border: 'border-brand-rose/40',
@@ -48,6 +49,8 @@ const CONFIG: Record<
 export function FunnelChip({ stage, active = false, onClick }: FunnelChipProps) {
   const c = CONFIG[stage]
   const interactive = Boolean(onClick)
+  // Subscribe so the funnel title localizes on language switch.
+  useLanguage()
   return (
     <button
       type="button"
@@ -65,7 +68,7 @@ export function FunnelChip({ stage, active = false, onClick }: FunnelChipProps) 
     >
       <span className={cn('h-2.5 w-2.5 rounded-full', c.dot, active && c.glow)} />
       {c.label}
-      <span className="font-normal opacity-70">{c.title}</span>
+      <span className="font-normal opacity-70">{t(c.titleKey)}</span>
     </button>
   )
 }

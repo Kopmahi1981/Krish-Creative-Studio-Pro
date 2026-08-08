@@ -1,4 +1,5 @@
 import { ZoomControls } from './ZoomControls'
+import { t, useLanguage } from '@/i18n'
 
 interface StatusBarProps {
   scale: number
@@ -40,17 +41,18 @@ export function StatusBar({
   snap,
   coordinates,
 }: StatusBarProps) {
+  useLanguage()
   return (
     <footer className="glass-strong z-10 flex items-center justify-between gap-3 border-t border-white/10 px-4 py-1.5 text-xs text-foreground-muted">
       <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1">
-        <Stat label="Size" value={sizeLabel} />
-        <Stat label="Sel" value={String(selectionCount)} />
-        <Stat label="Grid" value={grid ? 'On' : 'Off'} />
-        <Stat label="Snap" value={snap ? 'On' : 'Off'} />
-        <Stat label="XY" value={`${coordinates.x}, ${coordinates.y}`} />
+        <Stat label={t('status.size')} value={sizeLabel} />
+        <Stat label={t('status.sel')} value={String(selectionCount)} />
+        <Stat label={t('status.grid')} value={grid ? t('status.on') : t('status.off')} />
+        <Stat label={t('status.snap')} value={snap ? t('status.on') : t('status.off')} />
+        <Stat label={t('status.zoom')} value={`${coordinates.x}, ${coordinates.y}`} />
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <span className="hidden text-foreground-muted sm:inline">Zoom</span>
+        <span className="hidden text-foreground-muted sm:inline">{t('status.zoom')}</span>
         <ZoomControls scale={scale} onZoomIn={onZoomIn} onZoomOut={onZoomOut} onFit={onFit} onSelectPreset={onSelectPreset} />
       </div>
     </footer>

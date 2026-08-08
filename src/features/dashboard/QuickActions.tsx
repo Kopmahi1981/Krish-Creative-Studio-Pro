@@ -1,10 +1,11 @@
 import { useNavigate } from 'react-router-dom'
 import type { LucideIcon } from 'lucide-react'
+import { t, useLanguage } from '@/i18n'
 
 export interface QuickAction {
   id: string
-  label: string
-  description: string
+  labelKey: string
+  descKey: string
   icon: LucideIcon
   to: string
   accent?: 'rose' | 'purple' | 'cyan'
@@ -25,6 +26,8 @@ const accentMap = {
  */
 export function QuickActions({ actions }: QuickActionsProps) {
   const navigate = useNavigate()
+  // Subscribe so the action labels localize on language switch.
+  useLanguage()
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {actions.map((action) => {
@@ -42,8 +45,8 @@ export function QuickActions({ actions }: QuickActionsProps) {
               <Icon className="h-5 w-5" />
             </span>
             <span>
-              <span className="block text-sm font-semibold text-foreground">{action.label}</span>
-              <span className="mt-0.5 block text-xs text-foreground-muted">{action.description}</span>
+              <span className="block text-sm font-semibold text-foreground">{t(action.labelKey)}</span>
+              <span className="mt-0.5 block text-xs text-foreground-muted">{t(action.descKey)}</span>
             </span>
           </button>
         )

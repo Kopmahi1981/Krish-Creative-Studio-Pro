@@ -6,6 +6,7 @@ import { TemplateCard } from './components/TemplateCard'
 import { TemplatePreviewModal } from './components/TemplatePreviewModal'
 import { RecentTemplatesStrip } from './components/RecentTemplatesStrip'
 import { FunnelChip } from './components/FunnelChip'
+import { t, useLanguage } from '@/i18n'
 
 /**
  * Phase 3 — Template Library.
@@ -15,12 +16,13 @@ import { FunnelChip } from './components/FunnelChip'
  */
 export function TemplatesPage() {
   const lib = useTemplateLibrary()
+  useLanguage()
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Template Library"
-        description="Browse and customize high-converting Meta ad templates across the funnel."
+        title={t('page.templates')}
+        description={t('page.templates.desc')}
         actions={
           <span className="inline-flex items-center gap-2 rounded-full border border-brand-purple/40 bg-brand-purple/10 px-3 py-1.5 text-xs font-medium text-brand-purple shadow-neon-purple">
             <Sparkles className="h-3.5 w-3.5" /> {lib.all.length} templates
@@ -49,15 +51,15 @@ export function TemplatesPage() {
       {lib.results.length === 0 ? (
         <EmptyState
           icon={LayoutTemplate}
-          title="No templates match your filters"
-          description="Try clearing a filter or searching for a different keyword."
+          title={t('tpl.none.title')}
+          description={t('tpl.none.desc')}
           action={
             <button
               type="button"
               onClick={lib.resetFilters}
               className="rounded-xl border border-white/15 px-4 py-2 text-sm font-medium text-foreground transition hover:bg-white/10"
             >
-              Reset filters
+              {t('tpl.none.reset')}
             </button>
           }
         />

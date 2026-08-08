@@ -2,21 +2,22 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Bell } from 'lucide-react'
 import { Popover, Badge } from '@/components/ui'
+import { t, useLanguage } from '@/i18n'
 
 interface NotificationMock {
   id: string
-  title: string
-  detail: string
-  time: string
+  titleKey: string
+  detailKey: string
+  timeKey: string
   tone: 'rose' | 'purple' | 'cyan' | 'slate'
   /** Route the item navigates to when clicked (visual only). */
   to: string
 }
 
 const MOCK_NOTIFICATIONS: NotificationMock[] = [
-  { id: 'n1', title: 'Export ready', detail: 'Summer Sale — Facebook Post exported as PNG.', time: '2m ago', tone: 'cyan', to: '/assets' },
-  { id: 'n2', title: 'Template updated', detail: '“Carousel Pack v3” was edited by your team.', time: '1h ago', tone: 'purple', to: '/templates' },
-  { id: 'n3', title: 'Brand kit synced', detail: 'New logo variant added to Brand Kit.', time: 'Yesterday', tone: 'rose', to: '/profile' },
+  { id: 'n1', titleKey: 'notif.exportReady', detailKey: 'notif.exportReady.detail', timeKey: 'notif.time.2m', tone: 'cyan', to: '/assets' },
+  { id: 'n2', titleKey: 'notif.templateUpdated', detailKey: 'notif.templateUpdated.detail', timeKey: 'notif.time.1h', tone: 'purple', to: '/templates' },
+  { id: 'n3', titleKey: 'notif.brandKit', detailKey: 'notif.brandKit.detail', timeKey: 'notif.time.yesterday', tone: 'rose', to: '/profile' },
 ]
 
 const dotGlow: Record<NotificationMock['tone'], string> = {
@@ -29,10 +30,13 @@ const dotGlow: Record<NotificationMock['tone'], string> = {
 /**
  * Notifications panel. Each item is clickable and routes to a relevant placeholder
  * page; "View all" routes to /notifications. Mock data; no backend in Phase 2.
+ * All strings are localized via the i18n `t()` key system.
  */
 export function NotificationsPanel() {
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
+  // Subscribe to language so the panel re-renders on switch.
+  useLanguage()
 
   const go = (to: string) => {
     setOpen(false)
@@ -57,8 +61,8 @@ export function NotificationsPanel() {
     >
       <div className="flex flex-col overflow-hidden">
         <div className="mb-4 flex items-center justify-between">
-          <p className="text-sm font-semibold text-foreground">Notifications</p>
-          <Badge tone="cyan">{MOCK_NOTIFICATIONS.length} new</Badge>
+          <p className="text-sm font-semibold text-foreground">{t('notif.title')}</p>
+          <Badge tone="cyan">{t('notif.new', { count: MOCK_NOTIFICATIONS.length })}</Badge>
         </div>
 
         <ul className="space-y-4">
@@ -73,11 +77,11 @@ export function NotificationsPanel() {
                   className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-brand-${n.tone} ${dotGlow[n.tone]}`}
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-foreground">{n.title}</p>
+                  <p className="truncate text-sm font-semibold text-foreground">{t(n.titleKey)}</p>
                   <p className="mt-1 line-clamp-2 break-words text-xs leading-relaxed text-foreground-muted">
-                    {n.detail}
+                    {t(n.detailKey)}
                   </p>
-                  <p className="mt-1.5 text-[11px] text-foreground-muted">{n.time}</p>
+                  <p className="mt-1.5 text-[11px] text-foreground-muted">{t(n.timeKey)}</p>
                 </div>
               </button>
             </li>
@@ -89,7 +93,7 @@ export function NotificationsPanel() {
           onClick={() => go('/notifications')}
           className="mt-5 w-full rounded-xl border border-white/10 bg-white/5 py-2.5 text-center text-sm font-medium text-foreground-secondary transition-colors duration-150 hover:bg-white/10 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple/70"
         >
-          View all notifications
+          {t('notif.viewAll')}
         </button>
       </div>
     </Popover>

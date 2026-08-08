@@ -7,6 +7,7 @@ import { TemplateBadges } from './TemplateBadges'
 import { TemplateTag } from './TemplateTag'
 import { relativeDate, platformIcon } from '../utils/templateMeta'
 import { getTemplateIcon } from '../models/config'
+import { t, useLanguage } from '@/i18n'
 
 interface TemplatePreviewModalProps {
   template: Template | null
@@ -28,6 +29,8 @@ export function TemplatePreviewModal({
   onUse,
 }: TemplatePreviewModalProps) {
   const Icon = template ? getTemplateIcon(platformIcon(template.platform)) : null
+  // Subscribe so action labels localize on language switch.
+  useLanguage()
 
   return (
     <Modal open={Boolean(template)} onClose={onClose} size="max-w-2xl" title={template?.name}>
@@ -39,11 +42,11 @@ export function TemplatePreviewModal({
             <div className="min-w-0">
               <p className="text-sm text-foreground-secondary">{template.description}</p>
               <p className="mt-1 text-xs text-foreground-muted">
-                Created {relativeDate(template.createdAt)} · {template.popularity}% popular
+                {relativeDate(template.createdAt)} · {t('tpl.popular', { pct: template.popularity })}
               </p>
             </div>
             <IconButton
-              label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+              label={isFavorite ? t('tpl.removeFav') : t('tpl.addFav')}
               tone={isFavorite ? 'rose' : 'default'}
               onClick={() => onToggleFavorite(template.id)}
             >
@@ -63,13 +66,13 @@ export function TemplatePreviewModal({
 
           <div className="flex justify-end gap-2 pt-1">
             <Button variant="ghost" onClick={onClose}>
-              Close
+              {t('tpl.close')}
             </Button>
             <Button
               leftIcon={Icon ? <Icon className="h-4 w-4" /> : <Wand2 className="h-4 w-4" />}
               onClick={() => onUse(template)}
             >
-              Use this template
+              {t('tpl.used')}
             </Button>
           </div>
         </div>

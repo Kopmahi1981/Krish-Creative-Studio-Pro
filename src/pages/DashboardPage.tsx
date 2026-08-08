@@ -12,18 +12,19 @@ import { StatCard } from '@/features/dashboard/StatCard'
 import { QuickActions, type QuickAction } from '@/features/dashboard/QuickActions'
 import { RecentActivity, type ActivityItem } from '@/features/dashboard/RecentActivity'
 import { RecentCreatives, type CreativeItem } from '@/features/dashboard/RecentCreatives'
+import { t, useLanguage } from '@/i18n'
 
 const STATS = [
-  { label: 'Creatives Generated', value: '128', delta: '+12% this week', trend: 'up' as const, icon: Sparkles, accent: 'purple' as const },
-  { label: 'Active Templates', value: '24', delta: '+3 new', trend: 'up' as const, icon: Layers, accent: 'rose' as const },
-  { label: 'Avg. Engagement', value: '4.8%', delta: '+0.6% vs last', trend: 'up' as const, icon: TrendingUp, accent: 'cyan' as const },
-  { label: 'Team Members', value: '7', delta: 'No change', trend: 'flat' as const, icon: Users, accent: 'purple' as const },
+  { labelKey: 'page.stat.creatives', value: '128', delta: '+12% this week', trend: 'up' as const, icon: Sparkles, accent: 'purple' as const },
+  { labelKey: 'page.stat.templates', value: '24', delta: '+3 new', trend: 'up' as const, icon: Layers, accent: 'rose' as const },
+  { labelKey: 'page.stat.engagement', value: '4.8%', delta: '+0.6% vs last', trend: 'up' as const, icon: TrendingUp, accent: 'cyan' as const },
+  { labelKey: 'page.stat.team', value: '7', delta: 'No change', trend: 'flat' as const, icon: Users, accent: 'purple' as const },
 ]
 
 const QUICK_ACTIONS: QuickAction[] = [
-  { id: 'qa-new', label: 'New Creative', description: 'Start from a blank canvas', icon: Sparkles, to: '/canvas', accent: 'rose' },
-  { id: 'qa-template', label: 'Use Template', description: 'Browse Meta ad templates', icon: FileText, to: '/templates', accent: 'purple' },
-  { id: 'qa-upload', label: 'Upload Asset', description: 'Add images to library', icon: Upload, to: '/assets', accent: 'cyan' },
+  { id: 'qa-new', labelKey: 'page.qa.new', descKey: 'page.qa.new.desc', icon: Sparkles, to: '/canvas', accent: 'rose' },
+  { id: 'qa-template', labelKey: 'page.qa.template', descKey: 'page.qa.template.desc', icon: FileText, to: '/templates', accent: 'purple' },
+  { id: 'qa-upload', labelKey: 'page.qa.upload', descKey: 'page.qa.upload.desc', icon: Upload, to: '/assets', accent: 'cyan' },
 ]
 
 const ACTIVITY: ActivityItem[] = [
@@ -45,11 +46,12 @@ const CREATIVES: CreativeItem[] = [
  * Phase 2 Dashboard — composed from independent reusable widgets (no business logic).
  */
 export function DashboardPage() {
+  useLanguage()
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Dashboard"
-        description="Welcome back, Mahender. Here's what's happening in your creative studio."
+        title={t('page.dashboard')}
+        description={t('page.dashboard.desc')}
         actions={
           <span className="inline-flex items-center gap-2 rounded-full border border-brand-purple/40 bg-brand-purple/10 px-3 py-1.5 text-xs font-medium text-brand-purple shadow-neon-purple">
             <Zap className="h-3.5 w-3.5" /> Pro Workspace
@@ -59,12 +61,12 @@ export function DashboardPage() {
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {STATS.map((s) => (
-          <StatCard key={s.label} {...s} />
+          <StatCard key={s.labelKey} {...s} label={t(s.labelKey)} />
         ))}
       </section>
 
       <section>
-        <SectionHeader title="Quick Actions" description="Jump straight into your next task" />
+        <SectionHeader title={t('page.quickActions')} description={t('page.quickActions.desc')} />
         <QuickActions actions={QUICK_ACTIONS} />
       </section>
 

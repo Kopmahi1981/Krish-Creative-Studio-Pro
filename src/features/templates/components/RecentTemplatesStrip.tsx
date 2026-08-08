@@ -2,6 +2,7 @@ import { History } from 'lucide-react'
 import { SectionHeader } from '@/components/ui'
 import type { Template } from '../types/template'
 import { TemplateThumbnail } from './TemplateThumbnail'
+import { t, useLanguage } from '@/i18n'
 
 interface RecentTemplatesStripProps {
   templates: Template[]
@@ -14,12 +15,14 @@ interface RecentTemplatesStripProps {
  */
 export function RecentTemplatesStrip({ templates, onSelect }: RecentTemplatesStripProps) {
   if (templates.length === 0) return null
+  // Subscribe so the header localizes on language switch.
+  useLanguage()
 
   return (
     <div>
       <SectionHeader
-        title="Recently Viewed"
-        description="Pick up where you left off"
+        title={t('tpl.recent')}
+        description={t('tpl.recent.desc')}
         className="mb-3"
         action={<History className="h-4 w-4 text-foreground-muted" />}
       />

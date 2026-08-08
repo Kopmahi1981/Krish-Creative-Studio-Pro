@@ -1,17 +1,19 @@
 import { LifeBuoy } from 'lucide-react'
 import { PageHeader, EmptyState } from '@/components/ui'
+import { t, useLanguage } from '@/i18n'
 
 /**
  * Placeholder page — reached from the profile menu. Support UI ships later.
  */
 export function SupportPage() {
+  useLanguage()
   return (
     <div className="space-y-6">
-      <PageHeader title="Support" description="Help center and contact options." />
+      <PageHeader title={t('page.support')} description={t('page.support.desc')} />
       <EmptyState
         icon={LifeBuoy}
-        title="Support hub coming soon"
-        description="Browse docs, open tickets, and contact the team in a later phase."
+        title={t('page.support.comingSoon')}
+        description={t('page.support.comingSoon.desc')}
       />
     </div>
   )

@@ -13,6 +13,7 @@ import { SelectionOverlay } from './objects/SelectionOverlay'
 import { TextEditorOverlay } from './objects/TextEditorOverlay'
 import { useCanvasInteractions } from '../hooks/useCanvasInteractions'
 import type { TextObject } from '../objects/model'
+import { t, useLanguage } from '@/i18n'
 
 interface CanvasWorkspaceProps {
   document: CanvasDocument
@@ -48,6 +49,8 @@ export function CanvasWorkspace({ document, scale, showGrid, containerRef }: Can
 
   const selectedObject = selectedId ? objectsById[selectedId] : null
   const editingObject = editingId ? (objectsById[editingId] as TextObject | undefined) : null
+  // Subscribe to language so the empty-state messages localize on switch.
+  useLanguage()
 
   const { handleArtboardPointerDown, handleArtboardClick, handleObjectPointerDown, handleOverlayMoveStart, handleOverlayResizeStart, handleObjectDoubleClick } =
     useCanvasInteractions({ artboardRef, containerRef, scale })
@@ -176,14 +179,14 @@ export function CanvasWorkspace({ document, scale, showGrid, containerRef }: Can
                   >
                     {lowZoom ? (
                       <div className="font-semibold leading-snug text-white/80">
-                        <p>Start creating</p>
+                        <p>{t('canvas.empty.start')}</p>
                         <p className="mt-2 text-[0.7em] font-medium text-white/70">
-                          Double-click to add elements
+                          {t('canvas.empty.dblclick')}
                         </p>
                       </div>
                     ) : (
                       <p className="max-w-[28rem] font-medium leading-relaxed text-white/70">
-                        Your canvas is empty. Elements, text, and images arrive in the next phase.
+                        {t('canvas.empty.message')}
                       </p>
                     )}
                   </div>

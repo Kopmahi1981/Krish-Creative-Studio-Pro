@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, type PointerEvent as ReactPointerEvent, type RefObject } from 'react'
+import { useCallback, useEffect, useRef, type PointerEvent as ReactPointerEvent, type MouseEvent as ReactMouseEvent, type RefObject } from 'react'
 import { useCanvasObjects } from '../objects/store'
 import type { HandleId } from '../components/objects/SelectionOverlay'
 
@@ -37,6 +37,9 @@ interface DragState {
  */
 export function useCanvasInteractions({ artboardRef, containerRef, scale }: UseCanvasInteractionsArgs) {
   const drag = useRef<DragState | null>(null)
+  // Guards text-tool creation: a double-click fires two pointerdowns, and we must
+  // never create two objects from one user intent. Track the last successful create.
+  const lastCreate = useRef({ t: 0, x: 0, y: 0 })
 
   const toCanvas = useCallback(
     (clientX: number, clientY: number) => {
@@ -132,17 +135,42 @@ export function useCanvasInteractions({ artboardRef, containerRef, scale }: UseC
         }
         return
       }
-      if (store.toolMode === 'text') {
-        const { x, y } = toCanvas(e.clientX, e.clientY)
-        // Place the text box so the click is near its top-left, offset slightly.
-        store.addText(Math.round(x - 4), Math.round(y - 16))
-      } else {
+      if (store.toolMode === 'select') {
+        // Empty-canvas click in Select mode: deselect. (Text creation is handled
+        // on `click` so the new object mounts AFTER the gesture ends — otherwise the
+        // same click would immediately re-target the new object and hijack it.)
         store.deselect()
       }
+      // NOTE: 'text' mode does NOT create here. Creation happens in handleArtboardClick
+      // so the freshly created object cannot be re-targeted by the same gesture.
     },
-    [toCanvas, beginDrag, containerRef],
+    [beginDrag, containerRef],
   )
 
+  // Text-tool creation. Fires on `click` (once per gesture), not pointerdown, so the
+  // new object mounts only after the pointer is released and cannot be hijacked by
+  // the same click. A double-click = two clicks, suppressed to one by the dedup guard.
+  const handleArtboardClick = useCallback(
+    (e: ReactMouseEvent) => {
+      const store = useCanvasObjects.getState()
+      if (store.toolMode !== 'text') return
+      // Never create on top of an existing object or its selection chrome.
+      const target = e.target as HTMLElement | null
+      const onObject = target?.closest?.('[data-object-id]')
+      const onOverlay = target?.closest?.('[data-selection-overlay]')
+      if (onObject || onOverlay) return
+      const { x, y } = toCanvas(e.clientX, e.clientY)
+      const now = Date.now()
+      const last = lastCreate.current
+      // Suppress the second click of a double-click gesture (same spot, short window).
+      if (now - last.t < 300 && Math.abs(x - last.x) < 4 && Math.abs(y - last.y) < 4) {
+        return
+      }
+      lastCreate.current = { t: now, x, y }
+      store.addText(Math.round(x - 4), Math.round(y - 16))
+    },
+    [toCanvas],
+  )
   const handleObjectPointerDown = useCallback(
     (id: string, e: ReactPointerEvent) => {
       e.stopPropagation()
@@ -240,6 +268,7 @@ export function useCanvasInteractions({ artboardRef, containerRef, scale }: UseC
 
   return {
     handleArtboardPointerDown,
+    handleArtboardClick,
     handleObjectPointerDown,
     handleOverlayMoveStart,
     handleOverlayResizeStart,

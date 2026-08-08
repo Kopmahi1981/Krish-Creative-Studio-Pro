@@ -6,7 +6,7 @@ interface TextEditorOverlayProps {
   object: TextObject
   /** Commit edited text back to the store. */
   onCommit: (textContent: string) => void
-  /** Cancel editing (blur without change is still a commit of current value). */
+  /** Cancel editing (exit mode, keep object selected). */
   onCancel: () => void
 }
 
@@ -14,22 +14,35 @@ interface TextEditorOverlayProps {
  * Inline text editor rendered in CANVAS space at the object's rect, so it scales
  * and aligns with the artboard. Uses a contentEditable element — IME input
  * (Telugu, Hindi, Chinese, Japanese, Korean, Arabic, etc.) works natively.
- * Commits on blur or Escape; Enter inserts a newline (Shift+Enter not needed).
+ *
+ * Commit strategy (the important part): text is committed on blur AND on unmount.
+ * Unmount-commit is required because exiting via Escape (or clicking away / other
+ * deselect) removes the element WITHOUT firing onBlur — without it, typed text
+ * would be silently discarded. Both paths are idempotent (same store write).
  */
 export function TextEditorOverlay({ object, onCommit, onCancel }: TextEditorOverlayProps) {
   const ref = useRef<HTMLDivElement>(null)
+  const textRef = useRef(object.textContent)
+  const onCommitRef = useRef(onCommit)
+  const onCancelRef = useRef(onCancel)
+  onCommitRef.current = onCommit
+  onCancelRef.current = onCancel
 
+  // Focus + place caret on mount. Commit latest text on unmount (Escape / click-away / deselect).
   useEffect(() => {
     const el = ref.current
     if (!el) return
     el.focus()
-    // Place caret at end.
     const range = document.createRange()
     range.selectNodeContents(el)
     range.collapse(false)
     const sel = window.getSelection()
     sel?.removeAllRanges()
     sel?.addRange(range)
+    return () => {
+      onCommitRef.current(textRef.current)
+    }
+    // Re-run only when the edited object changes, never on every keystroke.
   }, [object.id])
 
   const style: CSSProperties = {
@@ -72,11 +85,15 @@ export function TextEditorOverlay({ object, onCommit, onCancel }: TextEditorOver
       role="textbox"
       aria-label="Edit text"
       style={style}
-      onBlur={(e) => onCommit(e.currentTarget.textContent ?? '')}
+      onInput={(e) => {
+        textRef.current = e.currentTarget.textContent ?? ''
+      }}
+      onBlur={(e) => onCommitRef.current(e.currentTarget.textContent ?? '')}
       onKeyDown={(e) => {
         if (e.key === 'Escape') {
           e.preventDefault()
-          onCancel()
+          onCancelRef.current()
+          return
         }
         // Enter = newline (default). Let the browser handle IME composition.
         e.stopPropagation()

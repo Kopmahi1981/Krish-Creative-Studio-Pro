@@ -68,6 +68,7 @@ export const SelectionOverlay = memo(function SelectionOverlay({
     <div style={boxStyle}>
       {/* Move handle: the whole box captures drags to move the object. */}
       <div
+        data-selection-overlay="move"
         style={{ position: 'absolute', inset: 0, cursor: 'move', pointerEvents: 'auto' }}
         onPointerDown={onMoveStart}
         onDoubleClick={onEditStart}

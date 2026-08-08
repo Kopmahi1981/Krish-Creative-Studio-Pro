@@ -82,7 +82,7 @@ function activeLayer(state: CanvasObjectState) {
   return { doc, page, layer }
 }
 
-export const useCanvasObjects = create<CanvasObjectState>((set, get) => ({
+export const useCanvasObjects = create<CanvasObjectState>((set) => ({
   project: createInitialProject('square'),
   objectsById: {},
   selectedObjectId: null,
@@ -90,7 +90,7 @@ export const useCanvasObjects = create<CanvasObjectState>((set, get) => ({
   toolMode: 'select',
 
   setToolMode: (mode) => set({ toolMode: mode }),
-  select: (id) => set({ selectedObjectId: id, editingObjectId: id ? get().editingObjectId : null }),
+  select: (id) => set({ selectedObjectId: id, editingObjectId: null }),
   deselect: () => set({ selectedObjectId: null, editingObjectId: null }),
   setEditing: (id) => set({ editingObjectId: id }),
 
@@ -144,6 +144,10 @@ export const useCanvasObjects = create<CanvasObjectState>((set, get) => ({
         },
         selectedObjectId: id,
         editingObjectId: null,
+        // Place-once model: after creating a text object the tool returns to Select
+        // so subsequent canvas clicks behave normally (select/edit), instead of
+        // spawning more text objects on every click.
+        toolMode: 'select',
       }
     })
     return id

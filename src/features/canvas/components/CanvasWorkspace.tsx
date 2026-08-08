@@ -49,7 +49,7 @@ export function CanvasWorkspace({ document, scale, showGrid, containerRef }: Can
   const selectedObject = selectedId ? objectsById[selectedId] : null
   const editingObject = editingId ? (objectsById[editingId] as TextObject | undefined) : null
 
-  const { handleArtboardPointerDown, handleObjectPointerDown, handleOverlayMoveStart, handleOverlayResizeStart, handleObjectDoubleClick } =
+  const { handleArtboardPointerDown, handleArtboardClick, handleObjectPointerDown, handleOverlayMoveStart, handleOverlayResizeStart, handleObjectDoubleClick } =
     useCanvasInteractions({ artboardRef, containerRef, scale })
 
   // Screen-space position of the artboard (relative to the scroll content).
@@ -125,6 +125,7 @@ export function CanvasWorkspace({ document, scale, showGrid, containerRef }: Can
               role="img"
               aria-label={`${size.width} by ${size.height} artboard at ${Math.round(scale * 100)}%`}
               onPointerDown={handleArtboardPointerDown}
+              onClick={handleArtboardClick}
             >
               {/* Guides */}
               {centerGuides.map((g) => (
@@ -196,8 +197,9 @@ export function CanvasWorkspace({ document, scale, showGrid, containerRef }: Can
                 <TextEditorOverlay
                   object={editingObject}
                   onCommit={(text) => {
+                    // Persist only — edit mode is exited explicitly (Escape) or by
+                    // clicking elsewhere (select/deselect clears editingObjectId).
                     useCanvasObjects.getState().updateObject(editingObject.id, { textContent: text })
-                    useCanvasObjects.getState().setEditing(null)
                   }}
                   onCancel={() => useCanvasObjects.getState().setEditing(null)}
                 />

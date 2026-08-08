@@ -73,10 +73,15 @@ export function CanvasWorkspace({ document, scale, showGrid, containerRef }: Can
     width: size.width,
     height: size.height,
     background: page.background,
+    // Grid: rendered in CANVAS units (fixed 40px tile). The artboard lives inside
+    // the Zoom Layer's `transform: scale(scale)`, so the browser scales this grid
+    // for us. Using `40 * scale` here would double-scale it (40*scale² screen px and
+    // sub-pixel lines at low zoom), which is why the grid looked missing at 25%/50%.
     backgroundImage: showGrid
-      ? `linear-gradient(to right, rgba(148,163,184,0.28) 1px, transparent 1px), linear-gradient(to bottom, rgba(148,163,184,0.28) 1px, transparent 1px)`
+      ? `linear-gradient(to right, rgba(148,163,184,0.4) 1px, transparent 1px), linear-gradient(to bottom, rgba(148,163,184,0.4) 1px, transparent 1px)`
       : undefined,
-    backgroundSize: showGrid ? `${40 * scale}px ${40 * scale}px` : undefined,
+    backgroundSize: showGrid ? '40px 40px' : undefined,
+    backgroundPosition: showGrid ? '0 0' : undefined,
     cursor: toolMode === 'text' ? 'text' : toolMode === 'hand' ? 'grab' : 'default',
   }
 

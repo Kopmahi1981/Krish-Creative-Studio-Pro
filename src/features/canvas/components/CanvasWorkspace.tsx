@@ -113,7 +113,7 @@ export function CanvasWorkspace({ document, scale, showGrid, containerRef }: Can
       />
 
       {/* Pan Layer */}
-      <div className="flex min-h-full min-w-full items-center justify-center">
+      <div className="m-auto">
         {/* Sizer (scaled px) */}
         <div style={{ width: sizerW, height: sizerH }}>
           {/* Zoom Layer (scale only) */}

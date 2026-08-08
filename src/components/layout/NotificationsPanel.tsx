@@ -57,7 +57,7 @@ export function NotificationsPanel() {
           </span>
         </span>
       }
-      panelClassName="w-[380px] max-w-[calc(100vw-2rem)] p-4"
+      panelClassName="w-[380px] max-w-[calc(100vw-2rem)] p-4 -mr-[73px]"
     >
       <div className="flex flex-col overflow-hidden">
         <div className="mb-4 flex items-center justify-between">

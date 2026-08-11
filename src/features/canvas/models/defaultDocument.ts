@@ -1,5 +1,5 @@
 import type { CanvasDocument } from './editor'
-import { CANVAS_SIZES } from './sizes'
+import { getCanvasSize } from './sizes'
 
 /**
  * Creates a fresh, empty editor document at the given size. Used by the canvas
@@ -7,7 +7,8 @@ import { CANVAS_SIZES } from './sizes'
  * later phases will seed templates / restore from persistence.
  */
 export function createDefaultDocument(sizeId: CanvasDocument['size']['id'] = 'square'): CanvasDocument {
-  const size = CANVAS_SIZES.find((s) => s.id === sizeId) ?? CANVAS_SIZES[0]
+  // Phase 5.1: registry-backed resolution (legacy ids + format ids, safe fallback).
+  const size = getCanvasSize(sizeId)
   return {
     id: 'doc-local',
     title: 'Untitled Design',

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { CanvasSizeId, CanvasTool } from '../models/editor'
-import { CANVAS_SIZES, getCanvasSize } from '../models/sizes'
+import { getCanvasSize } from '../models/sizes'
 import { DEFAULT_FONT_ID } from '../fonts/config'
 import type {
   CanvasObject,
@@ -239,7 +239,10 @@ export const useCanvasObjects = create<CanvasObjectState>((set) => ({
     }),
 
   setDocumentSize: (sizeId) => {
-    const size = CANVAS_SIZES.find((s) => s.id === sizeId) ?? CANVAS_SIZES[0]
+    // Phase 5.1: resolve through the registry-backed helper so BOTH legacy size
+    // ids and registry format ids work, and an unknown id falls back safely
+    // instead of collapsing the artboard.
+    const size = getCanvasSize(sizeId)
     set((state) => ({
       project: {
         ...state.project,

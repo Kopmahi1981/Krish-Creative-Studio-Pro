@@ -34,6 +34,7 @@ import {
   Search,
   PlayCircle,
 } from 'lucide-react'
+import { getPlatform } from '@/features/platforms'
 
 /**
  * Central registry mapping the string-only `TemplateIconName` to its Lucide
@@ -95,16 +96,32 @@ export interface PlatformOption {
   tone: TemplateTone
 }
 
-export const PLATFORMS: PlatformOption[] = [
-  { value: 'facebook', label: 'Facebook', icon: 'Megaphone', tone: 'cyan' },
-  { value: 'instagram', label: 'Instagram', icon: 'Sparkles', tone: 'rose' },
-  { value: 'whatsapp', label: 'WhatsApp', icon: 'MessageCircle', tone: 'cyan' },
-  { value: 'linkedin', label: 'LinkedIn', icon: 'Briefcase', tone: 'cyan' },
-  { value: 'x', label: 'X', icon: 'AtSign', tone: 'slate' },
-  { value: 'pinterest', label: 'Pinterest', icon: 'Image', tone: 'rose' },
-  { value: 'google', label: 'Google', icon: 'Search', tone: 'purple' },
-  { value: 'youtube', label: 'YouTube', icon: 'PlayCircle', tone: 'rose' },
+/**
+ * ADAPTER (Phase 5.1) — the Platform & Format Registry is now the single source
+ * of truth for platforms. This list is DERIVED from `PLATFORM_DEFS` instead of
+ * being a second, competing hardcoded vocabulary.
+ *
+ * The template library's `Platform` union is narrower than the registry's open
+ * `PlatformId`, so we project only the registry platforms the library already
+ * supports, preserving the library's exact previous behaviour, order and
+ * labels. Template behaviour and UI are unchanged.
+ */
+const TEMPLATE_PLATFORM_ORDER: Platform[] = [
+  'facebook',
+  'instagram',
+  'whatsapp',
+  'linkedin',
+  'x',
+  'pinterest',
+  'google',
+  'youtube',
 ]
+
+export const PLATFORMS: PlatformOption[] = TEMPLATE_PLATFORM_ORDER.flatMap((value) => {
+  const def = getPlatform(value)
+  if (!def) return []
+  return [{ value, label: def.label, icon: def.icon, tone: def.tone }]
+})
 
 /* ----------------------------- Aspect ratios ---------------------------- */
 

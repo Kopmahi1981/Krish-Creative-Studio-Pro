@@ -12,8 +12,18 @@
  * canvas space means zoom and export are pure transforms, not geometry rewrites.
  */
 
-/** Intrinsic canvas document sizes supported by the studio. */
-export type CanvasSizeId = 'square' | 'portrait' | 'story' | 'landscape-ad' | 'landscape'
+import type { FormatId, LegacySizeId } from '@/features/platforms'
+
+/**
+ * Intrinsic canvas document size identifier.
+ *
+ * Phase 5.1: sizes became DATA-DRIVEN. An id is either one of the five
+ * originally shipped legacy ids (kept forever for backwards compatibility with
+ * existing documents and persisted state) or a registry `FormatId`
+ * (`${platformId}.${designTypeId}`). Both are resolved through the Platform &
+ * Format Registry, which never throws on an unknown id.
+ */
+export type CanvasSizeId = LegacySizeId | FormatId
 
 /** A resolved canvas size: intrinsic pixel dimensions + human label. */
 export interface CanvasSize {

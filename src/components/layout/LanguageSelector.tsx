@@ -16,9 +16,15 @@ export function LanguageSelector() {
     <div
       className="flex items-center gap-1 rounded-xl border border-white/10 bg-white/5 p-1 text-xs font-medium"
       role="group"
-      aria-label="Language"
+      aria-label="UI language"
     >
-      <Languages className="ml-1 h-4 w-4 text-foreground-muted" aria-hidden="true" />
+      <span
+        className="hidden shrink-0 select-none pl-1 pr-1 text-[0.65rem] font-semibold uppercase tracking-wider text-foreground-muted md:inline"
+        title="Interface language"
+      >
+        UI
+      </span>
+      <Languages className="ml-0.5 h-4 w-4 text-foreground-muted md:hidden" aria-hidden="true" />
       {LANGUAGES.map((l) => {
         const active = l.code === lang
         return (

@@ -23,6 +23,8 @@
  */
 
 import type { CanvasSizeId } from '../models/editor'
+import type { Language } from '@/i18n/types'
+import type { DocumentVariants } from '../i18n-content/types'
 
 /** Geometry is expressed in intrinsic CANVAS pixels (pre-zoom). */
 export interface CanvasRect {
@@ -141,6 +143,15 @@ export interface CanvasDocumentMetadata {
   updatedAt: string
   /** Reserved for version history / collaboration. */
   revision: number
+  /**
+   * The language the ORIGINAL design content is authored in (Phase 5.2).
+   * Defaults to 'en'. Objects in `pages/layers/objects` are always in this
+   * language; every other language is a sparse overlay in `variants`.
+   *
+   * Optional so documents persisted before Phase 5.2 remain valid — readers
+   * fall back to 'en'.
+   */
+  sourceLanguage?: Language
 }
 
 /**
@@ -154,6 +165,17 @@ export interface CanvasDocumentModel {
   settings: CanvasDocumentSettings
   pages: CanvasPageModel[]
   activePageId: string
+  /**
+   * MULTILINGUAL DESIGN CONTENT (Phase 5.2) — sparse translation overlay.
+   *
+   * Keyed by language; each entry holds `overrides` keyed by ORIGINAL object
+   * id. Variant text lives ONLY here, never in the objects above, so a
+   * language variant can never overwrite the source design. Geometry is stored
+   * once (on the original object) and therefore cannot drift between languages.
+   *
+   * Optional: a document without variants is a valid, unmigrated document.
+   */
+  variants?: DocumentVariants
 }
 
 /** The top-level Project (future: multiple documents, assets, sharing). */

@@ -7,7 +7,8 @@ import {
 } from 'react'
 import type { CanvasDocument, CanvasSize } from '../models/editor'
 import { buildSafeAreaGuides, buildCenterGuides, SAFE_AREA_INSET_RATIO } from '../models/sizes'
-import { useCanvasObjects } from '../objects/store'
+import { useCanvasObjects, selectSourceLanguage, selectVariants } from '../objects/store'
+import { resolveObject } from '../i18n-content/resolver'
 import { CanvasObjectsLayer } from './objects/CanvasObjectsLayer'
 import { SelectionOverlay } from './objects/SelectionOverlay'
 import { TextEditorOverlay } from './objects/TextEditorOverlay'
@@ -47,8 +48,21 @@ export function CanvasWorkspace({ document, scale, showGrid, containerRef }: Can
   const objectsById = useCanvasObjects((s) => s.objectsById)
   const toolMode = useCanvasObjects((s) => s.toolMode)
 
-  const selectedObject = selectedId ? objectsById[selectedId] : null
-  const editingObject = editingId ? (objectsById[editingId] as TextObject | undefined) : null
+  // Phase 5.2: resolve through the active DESIGN language so selection chrome
+  // and the inline editor show the translated text, while the ORIGINAL object
+  // in the store stays untouched.
+  const designLanguage = useCanvasObjects((s) => s.activeDesignLanguage)
+  const sourceLanguage = useCanvasObjects(selectSourceLanguage)
+  const variants = useCanvasObjects(selectVariants)
+
+  const rawSelected = selectedId ? objectsById[selectedId] : null
+  const rawEditing = editingId ? objectsById[editingId] : null
+  const selectedObject = rawSelected
+    ? resolveObject(rawSelected, designLanguage, sourceLanguage, variants)
+    : null
+  const editingObject = rawEditing
+    ? (resolveObject(rawEditing, designLanguage, sourceLanguage, variants) as TextObject)
+    : null
   // Subscribe to language so the empty-state messages localize on switch.
   useLanguage()
 
@@ -207,7 +221,12 @@ export function CanvasWorkspace({ document, scale, showGrid, containerRef }: Can
                   onCommit={(text) => {
                     // Persist only — edit mode is exited explicitly (Escape) or by
                     // clicking elsewhere (select/deselect clears editingObjectId).
-                    useCanvasObjects.getState().updateObject(editingObject.id, { textContent: text })
+                    //
+                    // Phase 5.2: routed through `setObjectText`, the SINGLE
+                    // chokepoint that decides source-vs-variant. On a variant
+                    // language this writes the overlay ONLY; the original text
+                    // object is never touched.
+                    useCanvasObjects.getState().setObjectText(editingObject.id, text)
                   }}
                   onCancel={() => useCanvasObjects.getState().setEditing(null)}
                 />

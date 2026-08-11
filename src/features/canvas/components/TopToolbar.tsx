@@ -3,6 +3,7 @@ import { IconButton } from '@/components/ui'
 import { CanvasSizeSelector } from './CanvasSizeSelector'
 import { ZoomControls } from './ZoomControls'
 import { GridToggle } from './GridToggle'
+import { DesignLanguageSwitcher } from './DesignLanguageSwitcher'
 import type { CanvasSizeId } from '../models/editor'
 import { t, useLanguage } from '@/i18n'
 
@@ -44,6 +45,8 @@ export function TopToolbar({
       <div className="flex items-center gap-2">
         <CanvasSizeSelector value={sizeId} onChange={onSizeChange} />
         <GridToggle active={showGrid} onChange={onToggleGrid} />
+        {/* Phase 5.2: DESIGN content language (distinct from the UI language). */}
+        <DesignLanguageSwitcher />
       </div>
 
       <div className="ml-auto flex items-center gap-2">

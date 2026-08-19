@@ -62,8 +62,7 @@ export function TextEditorOverlay({ object, onCommit, onCancel }: TextEditorOver
     fontWeight: object.style.fontWeight ?? 'normal',
     fontStyle: object.style.italic ? 'italic' : 'normal',
     display: 'flex',
-    alignItems:
-      object.style.align === 'center' ? 'center' : object.style.align === 'right' ? 'flex-end' : 'flex-start',
+    alignItems: 'flex-start',
     justifyContent:
       object.style.align === 'center' ? 'center' : object.style.align === 'right' ? 'flex-end' : 'flex-start',
     whiteSpace: 'pre-wrap',

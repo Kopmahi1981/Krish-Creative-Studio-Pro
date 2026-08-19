@@ -1,4 +1,5 @@
 import { memo, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
+import { Lock } from 'lucide-react'
 import type { CanvasObject } from '../../objects/model'
 
 interface SelectionOverlayProps {
@@ -45,7 +46,7 @@ export const SelectionOverlay = memo(function SelectionOverlay({
   onResizeStart,
   onEditStart,
 }: SelectionOverlayProps) {
-  const { rect, rotation } = object
+  const { rect, rotation, locked } = object
   const left = artboardScreen.x + rect.x * scale
   const top = artboardScreen.y + rect.y * scale
   const w = rect.width * scale
@@ -57,8 +58,8 @@ export const SelectionOverlay = memo(function SelectionOverlay({
     top,
     width: w,
     height: h,
-    border: '1.5px solid rgb(168 85 247)',
-    boxShadow: '0 0 0 1px rgba(168,85,247,0.35)',
+    border: locked ? '1.5px dashed rgb(245 158 11)' : '1.5px solid rgb(168 85 247)',
+    boxShadow: locked ? '0 0 0 1px rgba(245,158,11,0.35)' : '0 0 0 1px rgba(168,85,247,0.35)',
     transform: rotation ? `rotate(${rotation}deg)` : undefined,
     transformOrigin: 'center center',
     pointerEvents: 'none',
@@ -66,32 +67,53 @@ export const SelectionOverlay = memo(function SelectionOverlay({
 
   return (
     <div style={boxStyle}>
-      {/* Move handle: the whole box captures drags to move the object. */}
+      {/* Move handle / overlay click target */}
       <div
         data-selection-overlay="move"
-        style={{ position: 'absolute', inset: 0, cursor: 'move', pointerEvents: 'auto' }}
-        onPointerDown={onMoveStart}
-        onDoubleClick={onEditStart}
+        style={{ position: 'absolute', inset: 0, cursor: locked ? 'not-allowed' : 'move', pointerEvents: 'auto' }}
+        onPointerDown={locked ? undefined : onMoveStart}
+        onDoubleClick={locked ? undefined : onEditStart}
       />
-      {HANDLES.map((hd) => (
+      {locked && (
         <div
-          key={hd.id}
           style={{
             position: 'absolute',
-            left: `calc(${hd.cx * 100}% - ${HANDLE / 2}px)`,
-            top: `calc(${hd.cy * 100}% - ${HANDLE / 2}px)`,
-            width: HANDLE,
-            height: HANDLE,
-            borderRadius: 2,
-            background: '#fff',
-            border: '1.5px solid rgb(168 85 247)',
-            boxShadow: '0 0 6px rgba(168,85,247,0.6)',
-            cursor: hd.cursor,
-            pointerEvents: 'auto',
+            right: 4,
+            top: 4,
+            background: 'rgba(245, 158, 11, 0.9)',
+            color: '#000',
+            borderRadius: 3,
+            padding: 2,
+            pointerEvents: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
-          onPointerDown={(e) => onResizeStart(hd.id, e)}
-        />
-      ))}
+          title="Locked object"
+        >
+          <Lock style={{ width: 12, height: 12 }} />
+        </div>
+      )}
+      {!locked &&
+        HANDLES.map((hd) => (
+          <div
+            key={hd.id}
+            style={{
+              position: 'absolute',
+              left: `calc(${hd.cx * 100}% - ${HANDLE / 2}px)`,
+              top: `calc(${hd.cy * 100}% - ${HANDLE / 2}px)`,
+              width: HANDLE,
+              height: HANDLE,
+              borderRadius: 2,
+              background: '#fff',
+              border: '1.5px solid rgb(168 85 247)',
+              boxShadow: '0 0 6px rgba(168,85,247,0.6)',
+              cursor: hd.cursor,
+              pointerEvents: 'auto',
+            }}
+            onPointerDown={(e) => onResizeStart(hd.id, e)}
+          />
+        ))}
     </div>
   )
 })

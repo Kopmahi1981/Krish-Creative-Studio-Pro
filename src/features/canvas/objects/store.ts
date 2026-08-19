@@ -29,6 +29,13 @@ import {
 /** Tool mode for the editor (reuses the existing CanvasTool union). */
 export type ToolMode = CanvasTool
 
+const HISTORY_LIMIT = 75
+
+interface DocumentSnapshot {
+  project: CanvasProject
+  objectsById: Record<string, CanvasObject>
+}
+
 let idCounter = 0
 const nextId = (prefix: string) => `${prefix}_${Date.now().toString(36)}_${(idCounter++).toString(36)}`
 
@@ -104,12 +111,20 @@ interface CanvasObjectState {
    * did before Phase 5.2.
    */
   activeDesignLanguage: Language
+  /** Transient, bounded document snapshots. Deliberately excluded from persistence. */
+  historyPast: DocumentSnapshot[]
+  historyFuture: DocumentSnapshot[]
+  historyTransaction: DocumentSnapshot | null
 
   // --- Tool / selection ---
   setToolMode: (mode: ToolMode) => void
   select: (id: string | null) => void
   deselect: () => void
   setEditing: (id: string | null) => void
+  undo: () => void
+  redo: () => void
+  beginHistoryTransaction: () => void
+  endHistoryTransaction: () => void
 
   // --- Mutations ---
   addText: (x: number, y: number, defaults?: Partial<TextObject>) => string
@@ -118,6 +133,7 @@ interface CanvasObjectState {
   clearAll: () => void
   newBlankProject: () => void
   setProjectName: (name: string) => void
+  setObjectLocked: (id: string, locked: boolean) => void
 
   // --- Document ---
   setDocumentSize: (sizeId: CanvasSizeId) => void
@@ -145,6 +161,23 @@ interface CanvasObjectState {
    * at exactly one branch rather than at each call site.
    */
   setObjectText: (id: string, textContent: string) => void
+}
+
+function snapshot(state: CanvasObjectState): DocumentSnapshot {
+  return { project: state.project, objectsById: state.objectsById }
+}
+
+/** Add one document-level history boundary unless a pointer gesture owns it. */
+function withHistory(state: CanvasObjectState, change: Partial<CanvasObjectState>): Partial<CanvasObjectState> {
+  const documentChanged =
+    (change.project !== undefined && change.project !== state.project) ||
+    (change.objectsById !== undefined && change.objectsById !== state.objectsById)
+  if (!documentChanged || state.historyTransaction) return change
+  return {
+    ...change,
+    historyPast: [...state.historyPast, snapshot(state)].slice(-HISTORY_LIMIT),
+    historyFuture: [],
+  }
 }
 
 /** Resolve the active document (Phase 5.2 helper). */
@@ -199,6 +232,9 @@ export const useCanvasObjects = create<CanvasObjectState>((set) => ({
   activeDesignLanguage: DEFAULT_LANGUAGE,
   editingLanguage: DEFAULT_LANGUAGE,
   preEditDesignLanguage: DEFAULT_LANGUAGE,
+  historyPast: [],
+  historyFuture: [],
+  historyTransaction: null,
 
   setToolMode: (mode) => set({ toolMode: mode }),
   select: (id) => set({ selectedObjectId: id, editingObjectId: null }),
@@ -207,17 +243,61 @@ export const useCanvasObjects = create<CanvasObjectState>((set) => ({
     set((state) =>
       id === null
         ? { editingObjectId: null }
-        // Capture the language being edited so a later language switch cannot
-        // redirect this edit's commit into a different branch. We also stash
-        // the PRE-edit language: if a switch unmounts the editor, the commit
-        // must land in the language the user was typing in, not the switched-to
-        // language. See `setObjectText`'s variant branch for the guard.
+        : state.objectsById[id]?.locked
+        ? state
         : {
             editingObjectId: id,
             editingLanguage: state.activeDesignLanguage,
             preEditDesignLanguage: state.activeDesignLanguage,
           },
     ),
+
+  undo: () =>
+    set((state) => {
+      const previous = state.historyPast.at(-1)
+      if (!previous) return state
+      return {
+        project: previous.project,
+        objectsById: previous.objectsById,
+        historyPast: state.historyPast.slice(0, -1),
+        historyFuture: [snapshot(state), ...state.historyFuture].slice(0, HISTORY_LIMIT),
+        historyTransaction: null,
+        selectedObjectId: null,
+        editingObjectId: null,
+      }
+    }),
+
+  redo: () =>
+    set((state) => {
+      const next = state.historyFuture[0]
+      if (!next) return state
+      return {
+        project: next.project,
+        objectsById: next.objectsById,
+        historyPast: [...state.historyPast, snapshot(state)].slice(-HISTORY_LIMIT),
+        historyFuture: state.historyFuture.slice(1),
+        historyTransaction: null,
+        selectedObjectId: null,
+        editingObjectId: null,
+      }
+    }),
+
+  beginHistoryTransaction: () =>
+    set((state) => (state.historyTransaction ? state : { historyTransaction: snapshot(state) })),
+
+  endHistoryTransaction: () =>
+    set((state) => {
+      const start = state.historyTransaction
+      if (!start) return state
+      const changed = start.project !== state.project || start.objectsById !== state.objectsById
+      return changed
+        ? {
+            historyTransaction: null,
+            historyPast: [...state.historyPast, start].slice(-HISTORY_LIMIT),
+            historyFuture: [],
+          }
+        : { historyTransaction: null }
+    }),
 
   addText: (x, y, defaults) => {
     const id = nextId('obj')
@@ -245,7 +325,7 @@ export const useCanvasObjects = create<CanvasObjectState>((set) => ({
     }
     set((state) => {
       const { layer } = activeLayer(state)
-      return {
+      return withHistory(state, {
         objectsById: { ...state.objectsById, [id]: text },
         project: {
           ...state.project,
@@ -273,7 +353,7 @@ export const useCanvasObjects = create<CanvasObjectState>((set) => ({
         // so subsequent canvas clicks behave normally (select/edit), instead of
         // spawning more text objects on every click.
         toolMode: 'select',
-      }
+      })
     })
     return id
   },
@@ -281,7 +361,7 @@ export const useCanvasObjects = create<CanvasObjectState>((set) => ({
   updateObject: (id, patch) => {
     set((state) => {
       const prev = state.objectsById[id]
-      if (!prev) return state
+      if (!prev || prev.locked) return state
       let next: CanvasObject
       if (prev.kind === 'text') {
         const { style, textContent, ...basePatch } = patch as Partial<TextObject>
@@ -301,18 +381,20 @@ export const useCanvasObjects = create<CanvasObjectState>((set) => ({
         next = { ...prev, ...patch } as CanvasObject
       }
       // Keep layer zIndex order in sync (cheap; only when zIndex changes).
-      return { objectsById: { ...state.objectsById, [id]: next } }
+      return withHistory(state, { objectsById: { ...state.objectsById, [id]: next } })
     })
   },
 
   removeObject: (id) => {
     set((state) => {
+      const existing = state.objectsById[id]
+      if (!existing || existing.locked) return state
       const { layer } = activeLayer(state)
       const { [id]: _removed, ...rest } = state.objectsById
       // Phase 5.2: an override whose base object no longer exists is
       // unreachable garbage — cascade-remove it from EVERY language.
       const prunedVariants = removeObjectFromAllVariants(selectVariants(state), id)
-      return {
+      return withHistory(state, {
         objectsById: rest,
         project: {
           ...state.project,
@@ -339,7 +421,7 @@ export const useCanvasObjects = create<CanvasObjectState>((set) => ({
         },
         selectedObjectId: state.selectedObjectId === id ? null : state.selectedObjectId,
         editingObjectId: state.editingObjectId === id ? null : state.editingObjectId,
-      }
+      })
     })
   },
 
@@ -348,7 +430,7 @@ export const useCanvasObjects = create<CanvasObjectState>((set) => ({
       const { layer } = activeLayer(state)
       // Phase 5.2: no objects remain, so no override can reference one.
       const emptiedVariants = pruneOverrides(selectVariants(state), new Set<string>())
-      return {
+      return withHistory(state, {
         objectsById: {},
         selectedObjectId: null,
         editingObjectId: null,
@@ -373,7 +455,7 @@ export const useCanvasObjects = create<CanvasObjectState>((set) => ({
                 },
           ),
         },
-      }
+      })
     }),
 
   newBlankProject: () =>
@@ -386,12 +468,28 @@ export const useCanvasObjects = create<CanvasObjectState>((set) => ({
       activeDesignLanguage: DEFAULT_LANGUAGE,
       editingLanguage: DEFAULT_LANGUAGE,
       preEditDesignLanguage: DEFAULT_LANGUAGE,
+      historyPast: [],
+      historyFuture: [],
+      historyTransaction: null,
     }),
 
   setProjectName: (name) =>
-    set((state) => ({
+    set((state) => withHistory(state, {
       project: { ...state.project, name: name.trim() || 'Untitled Project' },
     })),
+
+  setObjectLocked: (id, locked) =>
+    set((state) => {
+      const object = state.objectsById[id]
+      if (!object || object.locked === locked) return state
+      return withHistory(state, {
+        objectsById: { ...state.objectsById, [id]: { ...object, locked } },
+        // Keep an object selected while its properties panel supplies the only
+        // deliberate unlock control; all canvas interactions reject it.
+        selectedObjectId: id,
+        editingObjectId: null,
+      })
+    }),
 
   setActiveDesignLanguage: (lang) =>
     set((state) => {
@@ -421,20 +519,20 @@ export const useCanvasObjects = create<CanvasObjectState>((set) => ({
       const variants = { ...existing, [lang]: createVariant(lang) }
       const changing = state.activeDesignLanguage !== lang
       __clearResolveCache()
-      return {
+      return withHistory(state, {
         ...withVariants(state, variants),
         activeDesignLanguage: lang,
         // Mirror setActiveDesignLanguage: a real language change exits edit mode
         // so an in-flight inline edit can't commit through the wrong branch.
         // Reset preEditDesignLanguage to the new language for the same reason.
         ...(changing ? { editingObjectId: null, preEditDesignLanguage: lang } : {}),
-      }
+      })
     }),
 
   setObjectText: (id, textContent) => {
     set((state) => {
       const prev = state.objectsById[id]
-      if (!prev || prev.kind !== 'text') return state
+      if (!prev || prev.kind !== 'text' || prev.locked) return state
       const sourceLanguage = selectSourceLanguage(state)
       // ROUTE ON THE LIVE activeDesignLanguage — that is the single source of
       // truth for "which language am I editing right now". The editor's
@@ -462,7 +560,7 @@ export const useCanvasObjects = create<CanvasObjectState>((set) => ({
           (prev as TextObject).textContent,
         )
         // NOTE: `objectsById` is intentionally absent from this update.
-        return withVariants(state, variants)
+        return withHistory(state, withVariants(state, variants))
       }
 
       // ---- SOURCE BRANCH: write the original, flag its translations stale. ----
@@ -472,10 +570,10 @@ export const useCanvasObjects = create<CanvasObjectState>((set) => ({
       const staleUpdate = existing
         ? withVariants(state, markOverridesStale(existing, id, textContent))
         : {}
-      return {
+      return withHistory(state, {
         ...staleUpdate,
         objectsById: { ...state.objectsById, [id]: nextObj },
-      }
+      })
     })
   },
 
@@ -484,7 +582,7 @@ export const useCanvasObjects = create<CanvasObjectState>((set) => ({
     // ids and registry format ids work, and an unknown id falls back safely
     // instead of collapsing the artboard.
     const size = getCanvasSize(sizeId)
-    set((state) => ({
+    set((state) => withHistory(state, {
       project: {
         ...state.project,
         documents: state.project.documents.map((d) =>
@@ -497,7 +595,7 @@ export const useCanvasObjects = create<CanvasObjectState>((set) => ({
   },
 
   setGridVisible: (visible) =>
-    set((state) => ({
+    set((state) => withHistory(state, {
       project: {
         ...state.project,
         documents: state.project.documents.map((d) =>

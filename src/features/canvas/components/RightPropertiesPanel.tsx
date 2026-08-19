@@ -1,9 +1,10 @@
-import { SlidersHorizontal, MousePointerClick } from 'lucide-react'
+import { SlidersHorizontal, MousePointerClick, Lock, Unlock } from 'lucide-react'
 import { Input, Select, Slider, ColorPicker } from '@/components/ui'
 import { useCanvasObjects } from '../objects/store'
 import { FONT_CONFIG } from '../fonts/config'
 import type { TextObject } from '../objects/model'
 import { t, useLanguage } from '@/i18n'
+import { cn } from '@/utils/cn'
 
 const fontOptions = FONT_CONFIG.map((f) => ({ label: f.label, value: f.id }))
 
@@ -19,10 +20,12 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function NumberInput({
   value,
   onChange,
+  disabled,
   step = 1,
 }: {
   value: number
   onChange: (v: number) => void
+  disabled?: boolean
   step?: number
 }) {
   return (
@@ -30,6 +33,7 @@ function NumberInput({
       type="number"
       value={String(Math.round(value))}
       step={step}
+      disabled={disabled}
       onChange={(e) => {
         const n = Number(e.target.value)
         if (!Number.isNaN(n)) onChange(n)
@@ -49,17 +53,38 @@ export function RightPropertiesPanel() {
   const selectedId = useCanvasObjects((s) => s.selectedObjectId)
   const object = useCanvasObjects((s) => (selectedId ? s.objectsById[selectedId] : null))
   const update = useCanvasObjects((s) => s.updateObject)
+  const setObjectLocked = useCanvasObjects((s) => s.setObjectLocked)
   // Subscribe to language so all property labels re-render on switch.
   useLanguage()
 
+  const obj = object && object.kind === 'text' ? (object as TextObject) : null
+
   const header = (
-    <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
-      <SlidersHorizontal className="h-4 w-4 text-brand-purple" />
-      <h2 className="text-sm font-semibold text-foreground">{t('props.title')}</h2>
+    <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+      <div className="flex items-center gap-2">
+        <SlidersHorizontal className="h-4 w-4 text-brand-purple" />
+        <h2 className="text-sm font-semibold text-foreground">{t('props.title')}</h2>
+      </div>
+      {obj && (
+        <button
+          type="button"
+          onClick={() => setObjectLocked(obj.id, !obj.locked)}
+          className={cn(
+            'flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition',
+            obj.locked
+              ? 'border border-amber-500/40 bg-amber-500/20 text-amber-300'
+              : 'border border-white/10 bg-white/5 text-foreground-secondary hover:bg-white/10 hover:text-foreground',
+          )}
+          title={obj.locked ? 'Unlock object' : 'Lock object'}
+        >
+          {obj.locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
+          <span>{obj.locked ? 'Locked' : 'Lock'}</span>
+        </button>
+      )}
     </div>
   )
 
-  if (!object || object.kind !== 'text') {
+  if (!obj) {
     return (
       <aside className="hidden w-72 shrink-0 flex-col border-l border-white/10 bg-surface/40 lg:flex">
         {header}
@@ -92,7 +117,6 @@ export function RightPropertiesPanel() {
     )
   }
 
-  const obj = object as TextObject
   const setStyle = (patch: Partial<TextObject['style']>) => update(obj.id, { style: patch })
   const setRect = (patch: Partial<TextObject['rect']>) =>
     update(obj.id, { rect: { ...obj.rect, ...patch } })
@@ -100,19 +124,19 @@ export function RightPropertiesPanel() {
   return (
     <aside className="hidden w-72 shrink-0 flex-col overflow-y-auto border-l border-white/10 bg-surface/40 lg:flex">
       {header}
-      <div className="flex flex-col gap-4 p-4">
+      <fieldset disabled={obj.locked} className={cn('flex flex-col gap-4 p-4', obj.locked && 'opacity-60')}>
         <div className="grid grid-cols-2 gap-3">
           <Field label={t('props.x')}>
-            <NumberInput value={obj.rect.x} onChange={(v) => setRect({ x: v })} />
+            <NumberInput value={obj.rect.x} disabled={obj.locked} onChange={(v) => setRect({ x: v })} />
           </Field>
           <Field label={t('props.y')}>
-            <NumberInput value={obj.rect.y} onChange={(v) => setRect({ y: v })} />
+            <NumberInput value={obj.rect.y} disabled={obj.locked} onChange={(v) => setRect({ y: v })} />
           </Field>
           <Field label={t('props.width')}>
-            <NumberInput value={obj.rect.width} onChange={(v) => setRect({ width: Math.max(24, v) })} />
+            <NumberInput value={obj.rect.width} disabled={obj.locked} onChange={(v) => setRect({ width: Math.max(24, v) })} />
           </Field>
           <Field label={t('props.height')}>
-            <NumberInput value={obj.rect.height} onChange={(v) => setRect({ height: Math.max(24, v) })} />
+            <NumberInput value={obj.rect.height} disabled={obj.locked} onChange={(v) => setRect({ height: Math.max(24, v) })} />
           </Field>
         </div>
 
@@ -121,18 +145,20 @@ export function RightPropertiesPanel() {
             min={-180}
             max={180}
             value={obj.rotation}
+            disabled={obj.locked}
             onChange={(v) => update(obj.id, { rotation: v })}
           />
         </Field>
 
         <Field label={t('props.fontSize')}>
-          <NumberInput value={obj.style.fontSize} onChange={(v) => setStyle({ fontSize: Math.max(1, v) })} />
+          <NumberInput value={obj.style.fontSize} disabled={obj.locked} onChange={(v) => setStyle({ fontSize: Math.max(1, v) })} />
         </Field>
 
         <Field label={t('props.fontFamily')}>
           <Select
             value={obj.style.fontFamilyId}
             options={fontOptions}
+            disabled={obj.locked}
             onChange={(e) => setStyle({ fontFamilyId: e.target.value })}
           />
         </Field>
@@ -145,6 +171,7 @@ export function RightPropertiesPanel() {
               { label: t('props.align.center'), value: 'center' },
               { label: t('props.align.right'), value: 'right' },
             ]}
+            disabled={obj.locked}
             onChange={(e) => setStyle({ align: e.target.value as TextObject['style']['align'] })}
           />
         </Field>
@@ -158,10 +185,11 @@ export function RightPropertiesPanel() {
             min={0}
             max={100}
             value={Math.round(obj.opacity * 100)}
+            disabled={obj.locked}
             onChange={(v) => update(obj.id, { opacity: v / 100 })}
           />
         </Field>
-      </div>
+      </fieldset>
     </aside>
   )
 }

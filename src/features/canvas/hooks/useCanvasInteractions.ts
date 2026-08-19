@@ -98,6 +98,9 @@ export function useCanvasInteractions({ artboardRef, containerRef, scale }: UseC
   )
 
   const endDrag = useCallback(() => {
+    if (drag.current && drag.current.mode !== 'pan') {
+      useCanvasObjects.getState().endHistoryTransaction()
+    }
     drag.current = null
     if (containerRef.current) containerRef.current.style.cursor = ''
     window.removeEventListener('pointermove', onPointerMove)
@@ -107,6 +110,9 @@ export function useCanvasInteractions({ artboardRef, containerRef, scale }: UseC
   const beginDrag = useCallback(
     (state: DragState) => {
       drag.current = state
+      if (state.mode !== 'pan') {
+        useCanvasObjects.getState().beginHistoryTransaction()
+      }
       window.addEventListener('pointermove', onPointerMove)
       window.addEventListener('pointerup', endDrag)
     },
@@ -177,7 +183,7 @@ export function useCanvasInteractions({ artboardRef, containerRef, scale }: UseC
       const store = useCanvasObjects.getState()
       store.select(id)
       const obj = store.objectsById[id]
-      if (!obj) return
+      if (!obj || obj.locked) return
       beginDrag({
         mode: 'move',
         id,
@@ -196,7 +202,7 @@ export function useCanvasInteractions({ artboardRef, containerRef, scale }: UseC
       const id = store.selectedObjectId
       if (!id) return
       const obj = store.objectsById[id]
-      if (!obj) return
+      if (!obj || obj.locked) return
       beginDrag({
         mode: 'move',
         id,
@@ -215,7 +221,7 @@ export function useCanvasInteractions({ artboardRef, containerRef, scale }: UseC
       const id = store.selectedObjectId
       if (!id) return
       const obj = store.objectsById[id]
-      if (!obj) return
+      if (!obj || obj.locked) return
       beginDrag({
         mode: 'resize',
         handle,
@@ -229,18 +235,55 @@ export function useCanvasInteractions({ artboardRef, containerRef, scale }: UseC
   )
 
   const handleObjectDoubleClick = useCallback((id: string, _e: ReactPointerEvent | React.MouseEvent) => {
-    useCanvasObjects.getState().setEditing(id)
+    const obj = useCanvasObjects.getState().objectsById[id]
+    if (obj && !obj.locked) {
+      useCanvasObjects.getState().setEditing(id)
+    }
   }, [])
 
-  // Keyboard: delete + nudge. Disabled while editing text.
+  // Keyboard listeners: delete, nudge, escape, undo, redo.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null
+      const isInput =
+        target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+      if (isInput) return
+
       const store = useCanvasObjects.getState()
-      if (store.editingObjectId) return // editor handles its own keys
+
+      // Global Undo/Redo shortcuts
+      const isCmdOrCtrl = e.metaKey || e.ctrlKey
+      if (isCmdOrCtrl && e.key.toLowerCase() === 'z') {
+        e.preventDefault()
+        if (e.shiftKey) {
+          store.redo()
+        } else {
+          store.undo()
+        }
+        return
+      }
+      if (isCmdOrCtrl && e.key.toLowerCase() === 'y') {
+        e.preventDefault()
+        store.redo()
+        return
+      }
+
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        if (store.editingObjectId) {
+          store.setEditing(null)
+        } else if (store.selectedObjectId) {
+          store.deselect()
+        } else if (store.toolMode !== 'select') {
+          store.setToolMode('select')
+        }
+        return
+      }
+
       const id = store.selectedObjectId
       if (!id) return
       const obj = store.objectsById[id]
-      if (!obj) return
+      if (!obj || obj.locked) return
 
       if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault()
@@ -253,6 +296,7 @@ export function useCanvasInteractions({ artboardRef, containerRef, scale }: UseC
         store.updateObject(id, { rect: { ...obj.rect, x: obj.rect.x - step } })
       } else if (e.key === 'ArrowRight') {
         e.preventDefault()
+        console.log('onKey ArrowRight: id =', id, 'obj =', obj)
         store.updateObject(id, { rect: { ...obj.rect, x: obj.rect.x + step } })
       } else if (e.key === 'ArrowUp') {
         e.preventDefault()

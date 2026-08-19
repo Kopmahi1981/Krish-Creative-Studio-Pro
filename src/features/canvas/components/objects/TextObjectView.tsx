@@ -45,7 +45,7 @@ export const TextObjectView = memo(function TextObjectView({
     fontStyle: style.italic ? 'italic' : 'normal',
     textDecoration: style.underline ? 'underline' : style.strikethrough ? 'line-through' : undefined,
     display: 'flex',
-    alignItems: style.align === 'center' ? 'center' : style.align === 'right' ? 'flex-end' : 'flex-start',
+    alignItems: 'flex-start',
     justifyContent:
       style.align === 'center' ? 'center' : style.align === 'right' ? 'flex-end' : 'flex-start',
     whiteSpace: 'pre-wrap',

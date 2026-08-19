@@ -40,6 +40,11 @@ export function TopToolbar({
   const projectName = useCanvasObjects((s) => s.project.name)
   const setProjectName = useCanvasObjects((s) => s.setProjectName)
   const newBlankProject = useCanvasObjects((s) => s.newBlankProject)
+  const undo = useCanvasObjects((s) => s.undo)
+  const redo = useCanvasObjects((s) => s.redo)
+  const canUndo = useCanvasObjects((s) => s.historyPast.length > 0)
+  const canRedo = useCanvasObjects((s) => s.historyFuture.length > 0)
+
   return (
     <header className="glass-strong z-10 flex items-center gap-3 border-b border-white/10 px-3 py-2.5 sm:px-4">
       <div className="hidden min-w-0 flex-1 sm:block">
@@ -73,10 +78,10 @@ export function TopToolbar({
         >
           <FilePlus2 className="h-4 w-4" />
         </IconButton>
-        <IconButton label="Available in later phase" size="sm" disabled>
+        <IconButton label="Undo (Ctrl+Z)" size="sm" disabled={!canUndo} onClick={undo}>
           <Undo2 className="h-4 w-4" />
         </IconButton>
-        <IconButton label="Available in later phase" size="sm" disabled>
+        <IconButton label="Redo (Ctrl+Y)" size="sm" disabled={!canRedo} onClick={redo}>
           <Redo2 className="h-4 w-4" />
         </IconButton>
         <IconButton label="Available in later phase" size="sm" disabled>

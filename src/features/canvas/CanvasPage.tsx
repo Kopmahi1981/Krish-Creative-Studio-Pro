@@ -30,7 +30,6 @@ export function CanvasPage() {
   const { scale, containerRef, fitToScreen, zoomIn, zoomOut, setUserZoom } = useViewport(size)
 
   const selectedObject = selectedId ? objectsById[selectedId] : null
-  const objectCount = Object.keys(objectsById).length
   const centerX = selectedObject
     ? Math.round(selectedObject.rect.x + selectedObject.rect.width / 2)
     : Math.round(size.width / 2)
@@ -67,7 +66,7 @@ export function CanvasPage() {
             onFit={fitToScreen}
             onSelectPreset={setUserZoom}
             sizeLabel={`${size.width} × ${size.height}`}
-            selectionCount={objectCount}
+            selectionCount={selectedId ? 1 : 0}
             grid={showGrid}
             snap={false}
             coordinates={{ x: centerX, y: centerY }}

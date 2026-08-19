@@ -5,9 +5,16 @@ import {
   useRef,
   useState,
 } from 'react'
-import type { CanvasDocument, CanvasSize } from '../models/editor'
+import type { CanvasSize } from '../models/editor'
 import { buildSafeAreaGuides, buildCenterGuides, SAFE_AREA_INSET_RATIO } from '../models/sizes'
-import { useCanvasObjects, selectSourceLanguage, selectVariants } from '../objects/store'
+import {
+  useCanvasObjects,
+  selectActivePage,
+  selectActiveSize,
+  selectGridVisible,
+  selectSourceLanguage,
+  selectVariants,
+} from '../objects/store'
 import { resolveObject } from '../i18n-content/resolver'
 import { CanvasObjectsLayer } from './objects/CanvasObjectsLayer'
 import { SelectionOverlay } from './objects/SelectionOverlay'
@@ -17,9 +24,7 @@ import type { TextObject } from '../objects/model'
 import { t, useLanguage } from '@/i18n'
 
 interface CanvasWorkspaceProps {
-  document: CanvasDocument
   scale: number
-  showGrid: boolean
   /** Ref to the scrollable workspace element (owned by the viewport hook). */
   containerRef: RefObject<HTMLDivElement | null>
 }
@@ -38,9 +43,10 @@ interface CanvasWorkspaceProps {
  * Object geometry is in canvas pixels; the Zoom Layer scales it. Selection chrome
  * is screen-space so handles stay constant size at any zoom.
  */
-export function CanvasWorkspace({ document, scale, showGrid, containerRef }: CanvasWorkspaceProps) {
-  const page = document.pages[document.activePageIndex] ?? document.pages[0]
-  const size: CanvasSize = document.size
+export function CanvasWorkspace({ scale, containerRef }: CanvasWorkspaceProps) {
+  const page = useCanvasObjects(selectActivePage)
+  const size: CanvasSize = useCanvasObjects(selectActiveSize)
+  const showGrid = useCanvasObjects(selectGridVisible)
   const artboardRef = useRef<HTMLDivElement>(null)
 
   const selectedId = useCanvasObjects((s) => s.selectedObjectId)

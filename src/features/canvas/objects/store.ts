@@ -20,6 +20,11 @@ import {
   removeObjectFromAllVariants,
   setOverride,
 } from '../i18n-content/variants'
+import {
+  CANVAS_PERSISTENCE_VERSION,
+  loadPersistedCanvasProject,
+  savePersistedCanvasProject,
+} from './persistence'
 
 /** Tool mode for the editor (reuses the existing CanvasTool union). */
 export type ToolMode = CanvasTool
@@ -30,11 +35,12 @@ const nextId = (prefix: string) => `${prefix}_${Date.now().toString(36)}_${(idCo
 /** Build the initial single-page / single-layer document for a given size. */
 function createInitialProject(sizeId: CanvasSizeId): CanvasProject {
   const size = getCanvasSize(sizeId)
-  const layerId = 'layer_default'
-  const docId = 'doc_active'
-  const pageId = 'page_1'
+  const projectId = nextId('project')
+  const layerId = nextId('layer')
+  const docId = nextId('doc')
+  const pageId = nextId('page')
   return {
-    id: 'project_active',
+    id: projectId,
     name: 'Untitled Project',
     activeDocumentId: docId,
     documents: [
@@ -110,9 +116,12 @@ interface CanvasObjectState {
   updateObject: (id: string, patch: Partial<CanvasObjectBase> & { style?: Partial<TextObject['style']>; textContent?: string }) => void
   removeObject: (id: string) => void
   clearAll: () => void
+  newBlankProject: () => void
+  setProjectName: (name: string) => void
 
   // --- Document ---
   setDocumentSize: (sizeId: CanvasSizeId) => void
+  setGridVisible: (visible: boolean) => void
 
   // --- Multilingual design content (Phase 5.2) ---
   /** Switch the design language being edited. Never mutates any object. */
@@ -178,9 +187,11 @@ function activeLayer(state: CanvasObjectState) {
   return { doc, page, layer }
 }
 
+const restoredProject = loadPersistedCanvasProject()
+
 export const useCanvasObjects = create<CanvasObjectState>((set) => ({
-  project: createInitialProject('square'),
-  objectsById: {},
+  project: restoredProject?.project ?? createInitialProject('square'),
+  objectsById: restoredProject?.objectsById ?? {},
   selectedObjectId: null,
   editingObjectId: null,
   toolMode: 'select',
@@ -365,6 +376,23 @@ export const useCanvasObjects = create<CanvasObjectState>((set) => ({
       }
     }),
 
+  newBlankProject: () =>
+    set({
+      project: createInitialProject('square'),
+      objectsById: {},
+      selectedObjectId: null,
+      editingObjectId: null,
+      toolMode: 'select',
+      activeDesignLanguage: DEFAULT_LANGUAGE,
+      editingLanguage: DEFAULT_LANGUAGE,
+      preEditDesignLanguage: DEFAULT_LANGUAGE,
+    }),
+
+  setProjectName: (name) =>
+    set((state) => ({
+      project: { ...state.project, name: name.trim() || 'Untitled Project' },
+    })),
+
   setActiveDesignLanguage: (lang) =>
     set((state) => {
       if (state.activeDesignLanguage === lang) return state
@@ -467,7 +495,34 @@ export const useCanvasObjects = create<CanvasObjectState>((set) => ({
       },
     }))
   },
+
+  setGridVisible: (visible) =>
+    set((state) => ({
+      project: {
+        ...state.project,
+        documents: state.project.documents.map((d) =>
+          d.id !== state.project.activeDocumentId
+            ? d
+            : { ...d, settings: { ...d.settings, gridVisible: visible } },
+        ),
+      },
+    })),
 }))
+
+// Persist only durable project/document data. Selection, active tools, inline-edit
+// state and active design-language view are session UI state, not saved document data.
+let saveTimer: ReturnType<typeof setTimeout> | undefined
+useCanvasObjects.subscribe((state, previous) => {
+  if (state.project === previous.project && state.objectsById === previous.objectsById) return
+  if (saveTimer) clearTimeout(saveTimer)
+  saveTimer = setTimeout(() => {
+    savePersistedCanvasProject({
+      version: CANVAS_PERSISTENCE_VERSION,
+      project: useCanvasObjects.getState().project,
+      objectsById: useCanvasObjects.getState().objectsById,
+    })
+  }, 500)
+})
 
 // Dev-only inspection hook (no production impact; tree-shaken in prod build is unnecessary but harmless).
 if (typeof window !== 'undefined') {
@@ -476,8 +531,21 @@ if (typeof window !== 'undefined') {
 
 /** Convenience selector: the active document's intrinsic size (full CanvasSize). */
 export function selectActiveSize(state: CanvasObjectState) {
-  const doc = state.project.documents.find((d) => d.id === state.project.activeDocumentId)!
-  return getCanvasSize(doc.size.id)
+  return getCanvasSize(selectActiveDocument(state).size.id)
+}
+
+/** The single document currently rendered and edited by the canvas. */
+export function selectActiveDocument(state: CanvasObjectState): CanvasDocumentModel {
+  return state.project.documents.find((d) => d.id === state.project.activeDocumentId)!
+}
+
+export function selectActivePage(state: CanvasObjectState) {
+  const document = selectActiveDocument(state)
+  return document.pages.find((page) => page.id === document.activePageId)!
+}
+
+export function selectGridVisible(state: CanvasObjectState): boolean {
+  return selectActiveDocument(state).settings.gridVisible
 }
 
 /** Convenience selector: ordered object ids of the active layer. */

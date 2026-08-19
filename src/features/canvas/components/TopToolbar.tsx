@@ -1,11 +1,12 @@
-import { Undo2, Redo2, Download, Sparkles } from 'lucide-react'
-import { IconButton } from '@/components/ui'
+import { FilePlus2, Undo2, Redo2, Download, Sparkles } from 'lucide-react'
+import { IconButton, Input } from '@/components/ui'
 import { CanvasSizeSelector } from './CanvasSizeSelector'
 import { ZoomControls } from './ZoomControls'
 import { GridToggle } from './GridToggle'
 import { DesignLanguageSwitcher } from './DesignLanguageSwitcher'
 import type { CanvasSizeId } from '../models/editor'
-import { t, useLanguage } from '@/i18n'
+import { useLanguage } from '@/i18n'
+import { useCanvasObjects } from '../objects/store'
 
 interface TopToolbarProps {
   sizeId: CanvasSizeId
@@ -36,10 +37,19 @@ export function TopToolbar({
 }: TopToolbarProps) {
   // Subscribe to language so the document title localizes on switch.
   useLanguage()
+  const projectName = useCanvasObjects((s) => s.project.name)
+  const setProjectName = useCanvasObjects((s) => s.setProjectName)
+  const newBlankProject = useCanvasObjects((s) => s.newBlankProject)
   return (
     <header className="glass-strong z-10 flex items-center gap-3 border-b border-white/10 px-3 py-2.5 sm:px-4">
       <div className="hidden min-w-0 flex-1 sm:block">
-        <p className="truncate text-sm font-semibold text-foreground">{t('canvas.untitled')}</p>
+        <Input
+          aria-label="Project name"
+          value={projectName}
+          onChange={(event) => setProjectName(event.target.value)}
+          onBlur={(event) => setProjectName(event.target.value)}
+          className="h-9 max-w-56 py-1.5 text-sm font-semibold"
+        />
       </div>
 
       <div className="flex items-center gap-2">
@@ -52,6 +62,17 @@ export function TopToolbar({
       <div className="ml-auto flex items-center gap-2">
         <ZoomControls scale={scale} onZoomIn={onZoomIn} onZoomOut={onZoomOut} onFit={onFit} onSelectPreset={onSelectPreset} />
         <div className="mx-1 hidden h-6 w-px bg-white/10 sm:block" />
+        <IconButton
+          label="New blank project"
+          size="sm"
+          onClick={() => {
+            if (window.confirm('Create a new blank project? The current local project is already saved and will be replaced.')) {
+              newBlankProject()
+            }
+          }}
+        >
+          <FilePlus2 className="h-4 w-4" />
+        </IconButton>
         <IconButton label="Available in later phase" size="sm" disabled>
           <Undo2 className="h-4 w-4" />
         </IconButton>

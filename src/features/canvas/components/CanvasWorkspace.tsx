@@ -148,6 +148,7 @@ export function CanvasWorkspace({ scale, containerRef }: CanvasWorkspaceProps) {
             {/* Artboard (intrinsic) */}
             <div
               ref={artboardRef}
+              data-canvas-artboard="true"
               className="relative shadow-glass ring-1 ring-white/10"
               style={boardStyle}
               role="img"
@@ -159,6 +160,7 @@ export function CanvasWorkspace({ scale, containerRef }: CanvasWorkspaceProps) {
               {centerGuides.map((g) => (
                 <div
                   key={g.id}
+                  data-export-ignore="true"
                   className="pointer-events-none absolute bg-white/25"
                   style={
                     g.orientation === 'vertical'
@@ -168,6 +170,7 @@ export function CanvasWorkspace({ scale, containerRef }: CanvasWorkspaceProps) {
                 />
               ))}
               <div
+                data-export-ignore="true"
                 className="pointer-events-none absolute border border-dashed border-white/40"
                 style={{
                   left: size.width * SAFE_AREA_INSET_RATIO,
@@ -179,6 +182,7 @@ export function CanvasWorkspace({ scale, containerRef }: CanvasWorkspaceProps) {
               {safeGuides.map((g) => (
                 <div
                   key={g.id}
+                  data-export-ignore="true"
                   className="pointer-events-none absolute bg-white/30"
                   style={
                     g.orientation === 'vertical'
@@ -194,6 +198,7 @@ export function CanvasWorkspace({ scale, containerRef }: CanvasWorkspaceProps) {
                 const lowZoom = scale < 0.5
                 return (
                   <div
+                    data-export-ignore="true"
                     className="pointer-events-none absolute inset-0 grid place-items-center overflow-visible p-6 text-center"
                     style={{ fontSize: `${fontPx}px` }}
                   >

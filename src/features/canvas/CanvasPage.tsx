@@ -1,22 +1,23 @@
+import { useState } from 'react'
 import { TopToolbar } from './components/TopToolbar'
 import { LeftToolbar } from './components/LeftToolbar'
 import { CanvasWorkspace } from './components/CanvasWorkspace'
 import { RightPropertiesPanel } from './components/RightPropertiesPanel'
 import { StatusBar } from './components/StatusBar'
+import { ExportModal } from './components/ExportModal'
 import { useViewport } from './hooks/useViewport'
 import { useCanvasObjects, selectActiveSize, selectGridVisible } from './objects/store'
 import type { CanvasTool } from './models/editor'
 
 /**
- * Phase 4.3 — Canvas Foundation + Object Engine.
+ * Canvas Editor Page.
  *
- * The editor shell (top/left/right/status bars, workspace) is unchanged in layout.
- * Two centralized stores drive it:
+ * Centralized stores drive it:
  *  - `useViewport` — fit scale (auto) + user zoom (independent).
- *  - `useCanvasObjects` — the Document Model (project → document → pages →
- *    layers → objects), selection, tool mode, and editing state.
+ *  - `useCanvasObjects` — the Document Model, selection, tool mode, and editing state.
  */
 export function CanvasPage() {
+  const [exportModalOpen, setExportModalOpen] = useState(false)
   const tool = useCanvasObjects((s) => s.toolMode)
   const setToolMode = useCanvasObjects((s) => s.setToolMode)
   const setDocumentSize = useCanvasObjects((s) => s.setDocumentSize)
@@ -49,6 +50,7 @@ export function CanvasPage() {
         onSelectPreset={setUserZoom}
         showGrid={showGrid}
         onToggleGrid={setGridVisible}
+        onExportClick={() => setExportModalOpen(true)}
       />
 
       <div className="flex min-h-0 flex-1">
@@ -75,6 +77,8 @@ export function CanvasPage() {
 
         <RightPropertiesPanel />
       </div>
+
+      <ExportModal open={exportModalOpen} onClose={() => setExportModalOpen(false)} />
     </div>
   )
 }

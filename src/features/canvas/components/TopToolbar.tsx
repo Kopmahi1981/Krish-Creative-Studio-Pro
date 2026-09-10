@@ -18,11 +18,12 @@ interface TopToolbarProps {
   onSelectPreset: (multiplier: number) => void
   showGrid: boolean
   onToggleGrid: (next: boolean) => void
+  onExportClick?: () => void
 }
 
 /**
  * Top toolbar of the canvas editor. Composes the size selector, zoom cluster,
- * grid toggle, and (disabled / placeholder in Phase 4.1) undo-redo and export.
+ * grid toggle, undo-redo, and export.
  */
 export function TopToolbar({
   sizeId,
@@ -34,6 +35,7 @@ export function TopToolbar({
   onSelectPreset,
   showGrid,
   onToggleGrid,
+  onExportClick,
 }: TopToolbarProps) {
   // Subscribe to language so the document title localizes on switch.
   useLanguage()
@@ -84,7 +86,7 @@ export function TopToolbar({
         <IconButton label="Redo (Ctrl+Y)" size="sm" disabled={!canRedo} onClick={redo}>
           <Redo2 className="h-4 w-4" />
         </IconButton>
-        <IconButton label="Available in later phase" size="sm" disabled>
+        <IconButton label="Export creative image" size="sm" onClick={onExportClick}>
           <Download className="h-4 w-4" />
         </IconButton>
         <button

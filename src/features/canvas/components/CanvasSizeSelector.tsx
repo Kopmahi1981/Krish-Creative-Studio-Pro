@@ -47,7 +47,7 @@ export function CanvasSizeSelector({ value, onChange }: CanvasSizeSelectorProps)
       value={value}
       onChange={(e) => onChange(e.target.value as CanvasSizeId)}
       options={options}
-      className="w-52"
+      className="w-48 sm:w-52 shrink-0"
     />
   )
 }

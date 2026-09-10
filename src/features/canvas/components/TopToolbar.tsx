@@ -48,25 +48,24 @@ export function TopToolbar({
   const canRedo = useCanvasObjects((s) => s.historyFuture.length > 0)
 
   return (
-    <header className="glass-strong z-10 flex items-center gap-3 border-b border-white/10 px-3 py-2.5 sm:px-4">
-      <div className="hidden min-w-0 flex-1 sm:block">
-        <Input
-          aria-label="Project name"
-          value={projectName}
-          onChange={(event) => setProjectName(event.target.value)}
-          onBlur={(event) => setProjectName(event.target.value)}
-          className="h-9 max-w-56 py-1.5 text-sm font-semibold"
-        />
-      </div>
-
-      <div className="flex items-center gap-2">
+    <header className="glass-strong z-10 flex items-center justify-between border-b border-white/10 px-3 py-2 sm:px-4">
+      <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
+        <div className="hidden shrink-0 xl:block w-36 lg:w-44">
+          <Input
+            aria-label="Project name"
+            value={projectName}
+            onChange={(event) => setProjectName(event.target.value)}
+            onBlur={(event) => setProjectName(event.target.value)}
+            className="h-9 w-full py-1.5 text-sm font-semibold"
+          />
+        </div>
         <CanvasSizeSelector value={sizeId} onChange={onSizeChange} />
         <GridToggle active={showGrid} onChange={onToggleGrid} />
         {/* Phase 5.2: DESIGN content language (distinct from the UI language). */}
         <DesignLanguageSwitcher />
       </div>
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-1.5">
         <ZoomControls scale={scale} onZoomIn={onZoomIn} onZoomOut={onZoomOut} onFit={onFit} onSelectPreset={onSelectPreset} />
         <div className="mx-1 hidden h-6 w-px bg-white/10 sm:block" />
         <IconButton
@@ -94,7 +93,7 @@ export function TopToolbar({
           disabled
           title="Available in later phase"
           aria-label="Available in later phase"
-          className="hidden items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-foreground-secondary opacity-50 transition hover:bg-white/10 md:inline-flex"
+          className="hidden items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-foreground-secondary opacity-50 transition hover:bg-white/10 xl:inline-flex"
         >
           <Sparkles className="h-4 w-4" /> AI
         </button>

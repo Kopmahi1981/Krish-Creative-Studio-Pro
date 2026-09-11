@@ -1,5 +1,6 @@
 import { getCanvasSize } from '../models/sizes'
-import type { CanvasObject, CanvasProject } from './model'
+import type { CanvasObject, CanvasProject, ImageObject } from './model'
+import { getMediaRecord } from './mediaStorage'
 
 /** Browser storage key for the single locally editable canvas project. */
 export const CANVAS_PERSISTENCE_KEY = 'kcs-canvas-project'
@@ -22,6 +23,14 @@ function isCanvasObject(value: unknown): value is CanvasObject {
   if (typeof value.visible !== 'boolean' || typeof value.locked !== 'boolean' || typeof value.zIndex !== 'number') return false
   if (value.kind === 'text') {
     return typeof value.textContent === 'string' && isRecord(value.style)
+  }
+  if (value.kind === 'image') {
+    return (
+      typeof value.assetId === 'string' &&
+      typeof value.src === 'string' &&
+      typeof value.naturalWidth === 'number' &&
+      typeof value.naturalHeight === 'number'
+    )
   }
   return isRecord(value.props)
 }
@@ -77,11 +86,62 @@ export function loadPersistedCanvasProject(): PersistedCanvasProjectV1 | null {
   }
 }
 
+/**
+ * Strips heavy image payloads (`src`) before writing to localStorage so storage
+ * never exceeds browser limits (~5MB). The assetId references the full image in IndexedDB.
+ */
+function prepareLightweightSnapshot(snapshot: PersistedCanvasProjectV1): PersistedCanvasProjectV1 {
+  const sanitizedObjects: Record<string, CanvasObject> = {}
+  for (const [id, obj] of Object.entries(snapshot.objectsById)) {
+    if (obj.kind === 'image') {
+      sanitizedObjects[id] = {
+        ...obj,
+        src: '', // Kept empty in localStorage; hydrated from IndexedDB
+      }
+    } else {
+      sanitizedObjects[id] = obj
+    }
+  }
+  return {
+    ...snapshot,
+    objectsById: sanitizedObjects,
+  }
+}
+
 export function savePersistedCanvasProject(snapshot: PersistedCanvasProjectV1): void {
   if (typeof window === 'undefined') return
   try {
-    window.localStorage.setItem(CANVAS_PERSISTENCE_KEY, JSON.stringify(snapshot))
+    const lightweight = prepareLightweightSnapshot(snapshot)
+    window.localStorage.setItem(CANVAS_PERSISTENCE_KEY, JSON.stringify(lightweight))
   } catch {
     // Storage can be unavailable or full. The in-memory editor remains usable.
   }
+}
+
+/**
+ * Hydrates image object `src` fields from native IndexedDB media storage.
+ * Returns a map of objectId -> dataUrl.
+ */
+export async function hydratePersistedProjectMedia(
+  objectsById: Record<string, CanvasObject>,
+): Promise<Record<string, string>> {
+  const hydrated: Record<string, string> = {}
+  const imageEntries = Object.entries(objectsById).filter(
+    (entry): entry is [string, ImageObject] => entry[1].kind === 'image',
+  )
+
+  await Promise.all(
+    imageEntries.map(async ([objectId, imgObj]) => {
+      try {
+        const record = await getMediaRecord(imgObj.assetId)
+        if (record && record.dataUrl) {
+          hydrated[objectId] = record.dataUrl
+        }
+      } catch {
+        // Missing media is handled gracefully; object remains intact.
+      }
+    }),
+  )
+
+  return hydrated
 }

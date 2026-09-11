@@ -6,7 +6,8 @@ import {
   selectVariants,
 } from '../../objects/store'
 import { TextObjectView } from './TextObjectView'
-import type { TextObject } from '../../objects/model'
+import { ImageObjectView } from './ImageObjectView'
+import type { TextObject, ImageObject } from '../../objects/model'
 import { resolveObject } from '../../i18n-content/resolver'
 
 interface CanvasObjectsLayerProps {
@@ -50,6 +51,17 @@ export const CanvasObjectsLayer = memo(function CanvasObjectsLayer({
             <TextObjectView
               key={id}
               object={obj as TextObject}
+              interactive={interactive}
+              onPointerDown={(e) => onObjectPointerDown(id, e)}
+              onDoubleClick={(e) => onObjectDoubleClick(id, e)}
+            />
+          )
+        }
+        if (obj.kind === 'image') {
+          return (
+            <ImageObjectView
+              key={id}
+              object={obj as ImageObject}
               interactive={interactive}
               onPointerDown={(e) => onObjectPointerDown(id, e)}
               onDoubleClick={(e) => onObjectDoubleClick(id, e)}

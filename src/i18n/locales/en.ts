@@ -38,7 +38,7 @@ export const en: TranslationDict = {
   // --- Canvas toolbar (left rail) ---
   'tool.select': 'Select',
   'tool.text': 'Add text',
-  'tool.image': 'Add image (coming soon)',
+  'tool.image': 'Add image',
   'tool.shape': 'Add shape (coming soon)',
   'tool.hand': 'Pan',
 

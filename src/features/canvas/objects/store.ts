@@ -9,6 +9,7 @@ import type {
   CanvasDocumentModel,
   CanvasProject,
   TextObject,
+  ImageObject,
 } from './model'
 import type { Language } from '@/i18n/types'
 import { DEFAULT_LANGUAGE } from '@/i18n/types'
@@ -24,7 +25,9 @@ import {
   CANVAS_PERSISTENCE_VERSION,
   loadPersistedCanvasProject,
   savePersistedCanvasProject,
+  hydratePersistedProjectMedia,
 } from './persistence'
+import { deleteMediaRecord, pruneUnusedMedia } from './mediaStorage'
 
 /** Tool mode for the editor (reuses the existing CanvasTool union). */
 export type ToolMode = CanvasTool
@@ -128,7 +131,15 @@ interface CanvasObjectState {
 
   // --- Mutations ---
   addText: (x: number, y: number, defaults?: Partial<TextObject>) => string
-  updateObject: (id: string, patch: Partial<CanvasObjectBase> & { style?: Partial<TextObject['style']>; textContent?: string }) => void
+  addImage: (data: {
+    assetId: string
+    src: string
+    naturalWidth: number
+    naturalHeight: number
+    name?: string
+  }) => string
+  hydrateImageSources: (hydratedSources: Record<string, string>) => void
+  updateObject: (id: string, patch: Partial<CanvasObjectBase> & { style?: Partial<TextObject['style']>; textContent?: string; src?: string }) => void
   removeObject: (id: string) => void
   clearAll: () => void
   newBlankProject: () => void
@@ -358,6 +369,83 @@ export const useCanvasObjects = create<CanvasObjectState>((set) => ({
     return id
   },
 
+  addImage: (data) => {
+    const id = nextId('obj')
+    set((state) => {
+      const { doc, layer } = activeLayer(state)
+      const artboardWidth = doc.size.width
+      const artboardHeight = doc.size.height
+
+      // Bounded initial size: max 60% of artboard width and height, or max 500x500
+      const maxW = Math.min(500, Math.round(artboardWidth * 0.6))
+      const maxH = Math.min(500, Math.round(artboardHeight * 0.6))
+      const scale = Math.min(maxW / data.naturalWidth, maxH / data.naturalHeight, 1)
+      const width = Math.max(32, Math.round(data.naturalWidth * scale))
+      const height = Math.max(32, Math.round(data.naturalHeight * scale))
+      const x = Math.round((artboardWidth - width) / 2)
+      const y = Math.round((artboardHeight - height) / 2)
+
+      const imageObj: ImageObject = {
+        id,
+        kind: 'image',
+        assetId: data.assetId,
+        src: data.src,
+        naturalWidth: data.naturalWidth,
+        naturalHeight: data.naturalHeight,
+        rect: { x, y, width, height },
+        rotation: 0,
+        opacity: 1,
+        visible: true,
+        locked: false,
+        zIndex: 0,
+        name: data.name ?? 'Image',
+      }
+
+      return withHistory(state, {
+        objectsById: { ...state.objectsById, [id]: imageObj },
+        project: {
+          ...state.project,
+          documents: state.project.documents.map((d) =>
+            d.id !== state.project.activeDocumentId
+              ? d
+              : {
+                  ...d,
+                  pages: d.pages.map((p) =>
+                    p.id !== d.activePageId
+                      ? p
+                      : {
+                          ...p,
+                          layers: p.layers.map((l) =>
+                            l.id !== layer.id ? l : { ...l, objectIds: [...l.objectIds, id] },
+                          ),
+                        },
+                  ),
+                },
+          ),
+        },
+        selectedObjectId: id,
+        editingObjectId: null,
+        toolMode: 'select',
+      })
+    })
+    return id
+  },
+
+  hydrateImageSources: (hydratedSources) =>
+    set((state) => {
+      let changed = false
+      const nextObjects = { ...state.objectsById }
+      for (const [id, src] of Object.entries(hydratedSources)) {
+        const obj = nextObjects[id]
+        if (obj && obj.kind === 'image' && obj.src !== src) {
+          nextObjects[id] = { ...obj, src }
+          changed = true
+        }
+      }
+      if (!changed) return state
+      return { objectsById: nextObjects }
+    }),
+
   updateObject: (id, patch) => {
     set((state) => {
       const prev = state.objectsById[id]
@@ -377,6 +465,11 @@ export const useCanvasObjects = create<CanvasObjectState>((set) => ({
           textContent: inVariant ? prev.textContent : textContent ?? prev.textContent,
           style: style ? { ...prev.style, ...style } : prev.style,
         }
+      } else if (prev.kind === 'image') {
+        next = {
+          ...prev,
+          ...patch,
+        } as ImageObject
       } else {
         next = { ...prev, ...patch } as CanvasObject
       }
@@ -389,6 +482,14 @@ export const useCanvasObjects = create<CanvasObjectState>((set) => ({
     set((state) => {
       const existing = state.objectsById[id]
       if (!existing || existing.locked) return state
+      if (existing.kind === 'image') {
+        const isStillUsed = Object.entries(state.objectsById).some(
+          ([oid, o]) => oid !== id && o.kind === 'image' && (o as ImageObject).assetId === (existing as ImageObject).assetId,
+        )
+        if (!isStillUsed) {
+          deleteMediaRecord((existing as ImageObject).assetId).catch(() => {})
+        }
+      }
       const { layer } = activeLayer(state)
       const { [id]: _removed, ...rest } = state.objectsById
       // Phase 5.2: an override whose base object no longer exists is
@@ -427,6 +528,7 @@ export const useCanvasObjects = create<CanvasObjectState>((set) => ({
 
   clearAll: () =>
     set((state) => {
+      pruneUnusedMedia(new Set<string>()).catch(() => {})
       const { layer } = activeLayer(state)
       // Phase 5.2: no objects remain, so no override can reference one.
       const emptiedVariants = pruneOverrides(selectVariants(state), new Set<string>())
@@ -621,6 +723,17 @@ useCanvasObjects.subscribe((state, previous) => {
     })
   }, 500)
 })
+
+// Hydrate image sources from IndexedDB asynchronously upon application startup
+if (typeof window !== 'undefined' && restoredProject) {
+  hydratePersistedProjectMedia(restoredProject.objectsById)
+    .then((hydrated) => {
+      if (Object.keys(hydrated).length > 0) {
+        useCanvasObjects.getState().hydrateImageSources(hydrated)
+      }
+    })
+    .catch(() => {})
+}
 
 // Dev-only inspection hook (no production impact; tree-shaken in prod build is unnecessary but harmless).
 if (typeof window !== 'undefined') {

@@ -30,7 +30,7 @@ export const hi: TranslationDict = {
 
   'tool.select': 'चुनें',
   'tool.text': 'टेक्स्ट जोड़ें',
-  'tool.image': 'छवि जोड़ें (जल्द आ रहा है)',
+  'tool.image': 'छवि जोड़ें',
   'tool.shape': 'आकार जोड़ें (जल्द आ रहा है)',
   'tool.hand': 'पैन',
 

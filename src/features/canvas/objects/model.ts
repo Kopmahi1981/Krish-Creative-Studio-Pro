@@ -100,13 +100,27 @@ export interface TextObject extends CanvasObjectBase {
   style: TextStyle
 }
 
-/** Placeholder for future kinds; today only `text` is constructed. */
+/** An image object on the canvas (Phase 5.6). */
+export interface ImageObject extends CanvasObjectBase {
+  kind: 'image'
+  /** Unique media asset identifier associated with native IndexedDB storage. */
+  assetId: string
+  /** Renderable data URL or in-memory image source. */
+  src: string
+  /** Intrinsic dimensions of the original image file. */
+  naturalWidth: number
+  naturalHeight: number
+  /** Optional human-readable description / alt tag. */
+  alt?: string
+}
+
+/** Placeholder for future kinds; text and image are constructed. */
 export interface GenericObject extends CanvasObjectBase {
-  kind: Exclude<CanvasObjectType, 'text'>
+  kind: Exclude<CanvasObjectType, 'text' | 'image'>
   props: Record<string, unknown>
 }
 
-export type CanvasObject = TextObject | GenericObject
+export type CanvasObject = TextObject | ImageObject | GenericObject
 
 /** A layer groups objects on a page (future: groups, lock, blend modes). */
 export interface CanvasLayer {

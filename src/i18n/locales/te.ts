@@ -30,7 +30,7 @@ export const te: TranslationDict = {
 
   'tool.select': 'ఎంచుకోండి',
   'tool.text': 'టెక్స్ట్ జోడించు',
-  'tool.image': 'చిత్రాన్ని జోడించు (త్వరలో వస్తుంది)',
+  'tool.image': 'చిత్రాన్ని జోడించు',
   'tool.shape': 'ఆకారాన్ని జోడించు (త్వరలో వస్తుంది)',
   'tool.hand': 'ప్యాన్',
 

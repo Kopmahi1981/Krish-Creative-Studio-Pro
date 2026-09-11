@@ -28,6 +28,8 @@ import {
   hydratePersistedProjectMedia,
 } from './persistence'
 import { deleteMediaRecord, pruneUnusedMedia } from './mediaStorage'
+import { instantiateTemplate as instantiateTemplateToProject } from '@/features/templates/engine'
+import type { Template } from '@/features/templates/types/template'
 
 /** Tool mode for the editor (reuses the existing CanvasTool union). */
 export type ToolMode = CanvasTool
@@ -172,6 +174,9 @@ interface CanvasObjectState {
    * at exactly one branch rather than at each call site.
    */
   setObjectText: (id: string, textContent: string) => void
+
+  // --- Template Engine (Phase 5.7) ---
+  instantiateTemplate: (template: Template) => void
 }
 
 function snapshot(state: CanvasObjectState): DocumentSnapshot {
@@ -574,6 +579,24 @@ export const useCanvasObjects = create<CanvasObjectState>((set) => ({
       historyFuture: [],
       historyTransaction: null,
     }),
+
+  instantiateTemplate: (template) => {
+    const { project, objectsById } = instantiateTemplateToProject(template)
+    __clearResolveCache()
+    set({
+      project,
+      objectsById,
+      selectedObjectId: null,
+      editingObjectId: null,
+      toolMode: 'select',
+      activeDesignLanguage: DEFAULT_LANGUAGE,
+      editingLanguage: DEFAULT_LANGUAGE,
+      preEditDesignLanguage: DEFAULT_LANGUAGE,
+      historyPast: [],
+      historyFuture: [],
+      historyTransaction: null,
+    })
+  },
 
   setProjectName: (name) =>
     set((state) => withHistory(state, {

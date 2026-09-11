@@ -67,7 +67,9 @@ export type TemplateIconName =
   | 'Search'
   | 'PlayCircle'
 
-/** A single creative template definition (mock data — no assets uploaded). */
+import type { TemplateCanvasLayout } from '../engine/types'
+
+/** A single creative template definition with optional canvas layout (Phase 5.7). */
 export interface Template {
   id: string
   name: string
@@ -84,6 +86,8 @@ export interface Template {
   popularity: number
   /** ISO creation date (drives "newest" sort + relative display). */
   createdAt: string
+  /** Data-driven canvas layout for document instantiation (Phase 5.7). */
+  layout?: TemplateCanvasLayout
 }
 
 /** Active filter + view state for the library. */

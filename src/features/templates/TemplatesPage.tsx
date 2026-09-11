@@ -1,4 +1,5 @@
 import { Sparkles, LayoutTemplate } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { PageHeader, EmptyState } from '@/components/ui'
 import { useTemplateLibrary } from './hooks/useTemplateLibrary'
 import { TemplateFiltersPanel } from './components/TemplateFiltersPanel'
@@ -7,16 +8,26 @@ import { TemplatePreviewModal } from './components/TemplatePreviewModal'
 import { RecentTemplatesStrip } from './components/RecentTemplatesStrip'
 import { FunnelChip } from './components/FunnelChip'
 import { t, useLanguage } from '@/i18n'
+import { useCanvasObjects } from '@/features/canvas/objects/store'
+import type { Template } from './types/template'
 
 /**
  * Phase 3 — Template Library.
+ * Phase 5.7 — Template Engine integration (instant instantiation into Canvas).
  * Configuration-driven, strongly typed, and modular. Composes the template engine
  * (filter/sort service), local favorites/recents store, and presentational
- * components. No canvas, upload, export, or AI (deferred to later phases).
+ * components.
  */
 export function TemplatesPage() {
+  const navigate = useNavigate()
   const lib = useTemplateLibrary()
   useLanguage()
+
+  const handleUseTemplate = (template: Template) => {
+    lib.selectTemplate(template)
+    useCanvasObjects.getState().instantiateTemplate(template)
+    navigate('/canvas')
+  }
 
   return (
     <div className="space-y-6">
@@ -37,7 +48,7 @@ export function TemplatesPage() {
         ))}
       </div>
 
-      <RecentTemplatesStrip templates={lib.recentTemplates} onSelect={lib.selectTemplate} />
+      <RecentTemplatesStrip templates={lib.recentTemplates} onSelect={handleUseTemplate} />
 
       <TemplateFiltersPanel
         filters={lib.filters}
@@ -73,7 +84,7 @@ export function TemplatesPage() {
               view="grid"
               onToggleFavorite={lib.toggleFavorite}
               onPreview={lib.setPreviewed}
-              onSelect={lib.selectTemplate}
+              onSelect={handleUseTemplate}
             />
           ))}
         </div>
@@ -87,7 +98,7 @@ export function TemplatesPage() {
               view="list"
               onToggleFavorite={lib.toggleFavorite}
               onPreview={lib.setPreviewed}
-              onSelect={lib.selectTemplate}
+              onSelect={handleUseTemplate}
             />
           ))}
         </div>
@@ -99,8 +110,8 @@ export function TemplatesPage() {
         onToggleFavorite={lib.toggleFavorite}
         onClose={() => lib.setPreviewed(null)}
         onUse={(template) => {
-          lib.selectTemplate(template)
           lib.setPreviewed(null)
+          handleUseTemplate(template)
         }}
       />
     </div>

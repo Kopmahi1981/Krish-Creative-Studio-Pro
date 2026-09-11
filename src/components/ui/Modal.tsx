@@ -43,9 +43,12 @@ export function Modal({ open, onClose, title, children, footer, size = 'max-w-lg
               transition={{ duration: 0.18 }}
               role="dialog"
               aria-modal="true"
-              className={cn('relative w-full rounded-2xl border border-white/10 bg-surface/90 p-5 shadow-glass backdrop-blur-2xl', size)}
+              className={cn(
+                'relative flex max-h-[calc(100vh-2rem)] w-full flex-col rounded-2xl border border-white/10 bg-surface/90 p-5 shadow-glass backdrop-blur-2xl',
+                size,
+              )}
             >
-              <div className="mb-4 flex items-center justify-between">
+              <div className="mb-4 flex shrink-0 items-center justify-between">
                 {title && <h2 className="text-lg font-semibold text-foreground">{title}</h2>}
                 <button
                   type="button"
@@ -56,8 +59,10 @@ export function Modal({ open, onClose, title, children, footer, size = 'max-w-lg
                   <X className="h-5 w-5" />
                 </button>
               </div>
-              <div className="text-sm text-foreground-secondary">{children}</div>
-              {footer && <div className="mt-5 flex justify-end gap-2">{footer}</div>}
+              <div className="min-h-0 flex-1 overflow-y-auto pr-1 text-sm text-foreground-secondary scrollbar-thin">
+                {children}
+              </div>
+              {footer && <div className="mt-5 flex shrink-0 justify-end gap-2">{footer}</div>}
             </motion.div>
           </motion.div>
         )}

@@ -8,8 +8,8 @@ import { TemplateTag } from './TemplateTag'
 import { relativeDate } from '../utils/templateMeta'
 import { t, useLanguage } from '@/i18n'
 
-/** Standardized thumbnail ratio (4:5) so every card aligns and heights match. */
-const THUMB_RATIO = 0.8
+/** Standardized thumbnail ratio (1:1 square) so landscape, square, and portrait cards have balanced perceived scale. */
+const THUMB_RATIO = 1
 
 interface TemplateCardProps {
   template: Template
@@ -135,7 +135,7 @@ export function TemplateCard({
         className="relative block text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple/70"
         aria-label={`Preview ${template.name}`}
       >
-        <TemplateThumbnail template={template} fixedRatio={THUMB_RATIO} />
+        <TemplateThumbnail template={template} fixedRatio={THUMB_RATIO} className="w-full" />
         <span className="absolute right-2 top-2">{favoriteBtn}</span>
         {template.popularity >= 90 && (
           <span className="absolute left-2 top-2 rounded-full bg-brand-rose/90 px-2 py-0.5 text-[10px] font-bold text-white shadow-neon-rose">

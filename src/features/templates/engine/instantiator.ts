@@ -179,22 +179,35 @@ export interface InstantiationResult {
   objectsById: Record<string, CanvasObject>
 }
 
+/** Get the background and elements for a template (either explicit layout or fallback) */
+export function getTemplateLayout(template: Template): {
+  formatId: CanvasSizeId
+  width: number
+  height: number
+  background: string
+  elements: TemplateElement[]
+} {
+  const formatId = resolveTemplateFormatId(template)
+  const formatDef = resolveFormat(formatId)
+  const { width, height } = formatDef
+  const background = template.layout?.background || TONE_BACKGROUNDS[template.tone] || '#0f172a'
+  const elements =
+    template.layout?.elements && template.layout.elements.length > 0
+      ? template.layout.elements
+      : generateFallbackElements(template, width, height)
+
+  return { formatId, width, height, background, elements }
+}
+
+export { resolveTemplateFormatId, TONE_BACKGROUNDS, TONE_ACCENTS }
+
 /**
  * Instantiates a template into a standalone CanvasProject and normalized objects.
  * Everything is freshly created and deep-cloned so source templates are never mutated.
  */
 export function instantiateTemplate(template: Template): InstantiationResult {
-  const formatId = resolveTemplateFormatId(template)
+  const { formatId, width, height, background, elements: rawElements } = getTemplateLayout(template)
   const formatDef = resolveFormat(formatId)
-  const { width, height } = formatDef
-
-  const background =
-    template.layout?.background || TONE_BACKGROUNDS[template.tone] || '#0f172a'
-
-  const rawElements: TemplateElement[] =
-    template.layout?.elements && template.layout.elements.length > 0
-      ? template.layout.elements
-      : generateFallbackElements(template, width, height)
 
   const projectId = nextId('project')
   const docId = nextId('doc')
